@@ -66,3 +66,44 @@ test("validarHedges exige ao menos um código em MANTER", () => {
   assert.equal(validarHedges({}).length, 1);
   assert.deepEqual(validarHedges({ manter: " , DEMO-1 ;" }), []);
 });
+const GRUPOS_TESTE = [
+  { data: "2026-12-01", codigos: ["DEMO-1001/26-WEB-1", 'X"Y`Z${W}\\'] },
+  { data: "2026-12-08", codigos: ["DEMO-1003/26-WEB-2"] },
+];
+test("montarDatasHedge gera script sem marcadores, com PASSO e EMP_ID certos", () => {
+  const { montarDatasHedge } = require("../../painel/js/gerador.js");
+  const casos = [
+    { empresa: "BR21", tipo: "NOVOS", passo: "Passo01a", empId: "4" },
+    { empresa: "BR22", tipo: "EXPIRADOS", passo: "Passo01b", empId: "6" },
+  ];
+  for (const c of casos) {
+    for (const dryRun of [true, false]) {
+      const s = montarDatasHedge({ empresa: c.empresa, tipo: c.tipo, grupos: GRUPOS_TESTE, dryRun });
+      assert.doesNotMatch(s, /__[A-Z_]+__/);
+      assert.match(s, new RegExp(`const PASSO = "${c.passo}";`));
+      assert.match(s, new RegExp(`const EMP_ID = "${c.empId}";`));
+      assert.match(s, new RegExp(`const DRY_RUN = ${dryRun};`));
+      assert.match(s, /const TIMEOUT_RECARGA_MS = 30000;/);
+      assert.match(s, /const PAUSA_MS = 400;/);
+      const lit = s.match(/const GRUPOS = (\[[\s\S]*?\n  \]);/)[1];
+      assert.deepEqual(JSON.parse(lit), GRUPOS_TESTE);
+      new Function(s);
+    }
+  }
+  const curto = montarDatasHedge({ empresa: "BR02", tipo: "EXPIRADOS", grupos: GRUPOS_TESTE, dryRun: false,
+    timeoutMs: 5000, pausaMs: 100 });
+  assert.match(curto, /const EMP_ID = "3";/);
+  assert.match(curto, /const TIMEOUT_RECARGA_MS = 5000;/);
+  assert.match(curto, /const PAUSA_MS = 100;/);
+  assert.throws(() => montarDatasHedge({ empresa: "BR99", tipo: "NOVOS", grupos: GRUPOS_TESTE, dryRun: true }), /Empresa/);
+  assert.throws(() => montarDatasHedge({ empresa: "BR21", tipo: "X", grupos: GRUPOS_TESTE, dryRun: true }), /Tipo/);
+  assert.throws(() => montarDatasHedge({ empresa: "BR21", tipo: "NOVOS", grupos: [{ data: "16/11/2026", codigos: ["A"] }],
+    dryRun: true }), /data/i);
+});
+test("validarDatasHedge lista o que falta", () => {
+  const { validarDatasHedge } = require("../../painel/js/gerador.js");
+  assert.equal(validarDatasHedge({ empresa: "", tipo: "", grupos: [] }).length, 3);
+  assert.equal(validarDatasHedge({}).length, 3);
+  assert.equal(validarDatasHedge({ empresa: "BR21", tipo: "NOVOS", grupos: [{ data: "2026-12-01", codigos: [] }] }).length, 1);
+  assert.deepEqual(validarDatasHedge({ empresa: "BR21", tipo: "NOVOS", grupos: GRUPOS_TESTE }), []);
+});

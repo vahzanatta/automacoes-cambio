@@ -3,7 +3,7 @@
   const config = noNode ? require("./config.js") : window.Painel;
   const modelos = noNode
     ? Object.assign({}, require("../modelos/inclusao.js"), require("../modelos/hedges.js"),
-                    require("../modelos/previsoes.js"))
+                    require("../modelos/previsoes.js"), require("../modelos/datas-hedge.js"))
     : window.Painel.modelos;
 
   const MARCADOR_INICIO = "//<<INICIO";
@@ -80,8 +80,43 @@
     return preencher(extrairCorpo(modelos.previsoes), { DRY_RUN: dryRun ? "true" : "false" });
   }
 
+  const temImps = grupos => Array.isArray(grupos) &&
+    grupos.some(g => g && Array.isArray(g.codigos) && g.codigos.some(c => String(c || "").trim()));
+
+  function validarDatasHedge({ empresa, tipo, grupos } = {}) {
+    const faltas = [];
+    if (!config.EMPRESAS.some(e => e.codigo === empresa)) faltas.push("Escolha a empresa.");
+    if (!Object.prototype.hasOwnProperty.call(config.PASSOS_HEDGE, tipo)) {
+      faltas.push("Escolha o tipo (Hedges Novos ou Hedges Expirados).");
+    }
+    if (!temImps(grupos)) faltas.push("Informe ao menos uma IMP com a data.");
+    return faltas;
+  }
+
+  function montarDatasHedge({ empresa, tipo, grupos, dryRun, timeoutMs = 30000, pausaMs = 400 }) {
+    const emp = config.EMPRESAS.find(e => e.codigo === empresa);
+    if (!emp) throw new Error(`Empresa desconhecida: ${empresa}`);
+    const passo = Object.prototype.hasOwnProperty.call(config.PASSOS_HEDGE, tipo) && config.PASSOS_HEDGE[tipo];
+    if (!passo) throw new Error(`Tipo desconhecido: ${tipo}`);
+    for (const [nome, v] of [["timeoutMs", timeoutMs], ["pausaMs", pausaMs]]) {
+      if (!Number.isFinite(Number(v)) || Number(v) < 0) throw new Error(`${nome} inválido: ${v}`);
+    }
+    const lista = (grupos || []).map(g => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(g && g.data))) throw new Error(`Grupo com data inválida: ${g && g.data}`);
+      return { data: g.data, codigos: (g.codigos || []).map(String) };
+    });
+    return preencher(extrairCorpo(modelos.datasHedge), {
+      EMP_ID: JSON.stringify(emp.empId),
+      PASSO: JSON.stringify(passo.passo),
+      GRUPOS: JSON.stringify(lista, null, 2).replace(/\n/g, "\n  "),
+      DRY_RUN: dryRun ? "true" : "false",
+      TIMEOUT_RECARGA_MS: String(Number(timeoutMs)),
+      PAUSA_MS: String(Number(pausaMs)),
+    });
+  }
+
   exportar({ extrairCorpo, preencher, validarInclusao, montarInclusao,
-             validarHedges, montarHedges, montarPrevisoes });
+             validarHedges, montarHedges, montarPrevisoes, validarDatasHedge, montarDatasHedge });
 })(function (api) {
   if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, api);
   else Object.assign(window.Painel, api);

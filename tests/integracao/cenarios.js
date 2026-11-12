@@ -20,6 +20,14 @@
   const INICIAL = { "1001": "", "1002": "", "1003": "", "1004": "", "1005": "", "1006": "", "1007": "999999999" };
   const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+  // Passo 01 simulado: caixas da tabela ({ id, cx, tr }) e [id, Dt.Pgto.Hedge] de uma página do mock
+  const caixasDatas = doc => [...doc.querySelectorAll('input[name="wCheckbox"]')].map(cx => {
+    let id = "";
+    try { id = JSON.parse(cx.getAttribute("data-id")).wImpID; } catch (e) { id = ""; }
+    return { id, cx, tr: cx.closest("tr") };
+  });
+  const datasMock = (est, chave) => ((est.datas_hedge || {})[chave] || []).map(i => [i.id, i.dt_hedge]);
+
   async function semGravarComErro(ctx, reset, script) {
     await ctx.reset(reset);
     const pag = await ctx.rodar(script);
@@ -295,11 +303,275 @@
       },
     },
     {
+      // Datas dos hedges, Simulação no Passo 01a da BR21: pinta e resume, sem clicar nem gravar
+      nome: "datas_sim",
+      async rodar(ctx) {
+        await ctx.reset();
+        const pag = await ctx.rodar("datas_sim.js", "/hedge/Passo01a?Emp_ID=4");
+        await ctx.sleep(300);
+        const est = await ctx.estado();
+        const linhas = caixasDatas(pag.doc);
+        const pintadas = linhas.filter(l => l.tr.cells[0].style.backgroundColor === "rgb(212, 237, 218)").map(l => l.id).sort();
+        const texto = id => (linhas.find(l => l.id === id) || { tr: { textContent: "" } }).tr.textContent;
+        const caixa = pag.doc.querySelector(".__datas_hedge");
+        const tc = caixa ? caixa.textContent : "";
+        const tabelas = pag.logs.filter(l => l.tipo === "table");
+        return conferir([
+          [`o mock não tem a lista de lotes (estado: ${Object.keys(est).join(", ")})`, Array.isArray(est.lotes)],
+          [`esperava 0 lotes gravados, houve ${(est.lotes || []).length}`, (est.lotes || []).length === 0],
+          [`linhas pintadas: ${pintadas.join(", ")} (esperava 9101 a 9104)`, igual(pintadas, ["9101", "9102", "9103", "9104"])],
+          ["a data do grupo não foi escrita nas linhas", texto("9101").includes("01/12/2026") &&
+            texto("9104").includes("08/12/2026") && !texto("9107").includes("01/12/2026")],
+          ["alguma caixa ficou marcada na simulação", linhas.every(l => !l.cx.checked) &&
+            (pag.doc.getElementById("wImpsAtualizar") || {}).value === ""],
+          [`quadro: ${tc}`, tc.includes("01/12/2026: 2 IMP(s) — USD 10.000,00; EUR 2.500,50") &&
+            tc.includes("08/12/2026: 2 IMP(s) — USD 8.234,56")],
+          [`esperava 2 console.table, houve ${tabelas.length}`, tabelas.length === 2],
+          ["alguma data mudou no mock", datasMock(est, "Passo01a|4").every(([, d]) => d === "01/10/2026")],
+          [`erros no console: ${JSON.stringify(erros(pag))}`, erros(pag).length === 0],
+        ], "0 lotes; 9101–9104 pintadas com a data; quadro com os 2 grupos e totais por moeda");
+      },
+    },
+    {
+      // Execução no Passo 01b da BR22, com a caixa da 9106 já marcada (fora do plano), nos
+      // dois comportamentos da página: a IMP gravada continua na lista (some=0) ou sai (some=1).
+      // Também com caixas do grupo já marcadas ao carregar: a página não as põe na lista interna
+      // (#wImpsAtualizar) até um clique, e o lote tem de levar exatamente o grupo.
+      nome: "datas_exec",
+      async rodar(ctx) {
+        const checks = [];
+        const resumo = [];
+        for (const modo of ["some=0&premarcada=9106", "some=1&premarcada=9106", "some=0&premarcada=9101",
+                            "some=0&premarcada=9101,9102"]) {
+          await ctx.reset(modo);
+          const pag = await ctx.rodar("datas_exec.js", "/hedge/Passo01b?Emp_ID=6");
+          const status = () => { const st = pag.doc.querySelector("#__st"); return st ? st.textContent : ""; };
+          const fim = await ctx.esperar(() => /^(Concluído|Erro|Parado)/.test(status()), 40000);
+          await ctx.sleep(300);
+          const est = await ctx.estado();
+          const lotes = (est.lotes || []).map(l => `${l.passo}|${l.emp}|${l.data}|${[...l.imps].sort().join(",")}`);
+          const datas = Object.fromEntries(datasMock(est, "Passo01b|6"));
+          checks.push(
+            [`${modo}: o script não terminou (status: ${status()})`, !!fim],
+            [`${modo}: status final: ${status()}`, status().startsWith("Concluído: 2 grupos, 4 IMPs.")],
+            [`${modo}: lotes: ${lotes.join(" / ")}`, igual(lotes, [
+              "Passo01b|6|2026-12-01|9101,9102", "Passo01b|6|2026-12-08|9103,9104"])],
+            [`${modo}: datas no mock: ${JSON.stringify(datas)}`, igual(datas, {
+              "9101": "01/12/2026", "9102": "01/12/2026", "9103": "08/12/2026", "9104": "08/12/2026",
+              "9105": "01/10/2026", "9106": "01/10/2026", "9107": "01/10/2026" })],
+            [`${modo}: outra página/empresa mudou`, ["Passo01a|6", "Passo01b|3", "Passo01b|4"]
+              .every(k => datasMock(est, k).every(([, d]) => d === "01/10/2026"))],
+          );
+          resumo.push(`${modo}: ${status()}`);
+        }
+        return conferir(checks, "2 lotes com exatamente cada grupo; 9106 pré-marcada e 9107 parecida não gravadas; " +
+          "grupo pré-marcado sem a lista interna corrigido; " + resumo.join(" | "));
+      },
+    },
+    {
+      // Depois do clique, a página recarregada não prova a gravação: lista vazia (todas as IMPs,
+      // inclusive as de fora do grupo, sumiram) ou outra página. Para no 1º grupo sem dar como gravado.
+      nome: "datas_exec_sem_prova",
+      async rodar(ctx) {
+        const checks = [];
+        const resumo = [];
+        for (const modo of ["apos_lote=vazia", "apos_lote=outra"]) {
+          await ctx.reset(modo);
+          const pag = await ctx.rodar("datas_exec.js", "/hedge/Passo01b?Emp_ID=6");
+          const status = () => { const st = pag.doc.querySelector("#__st"); return st ? st.textContent : ""; };
+          const fim = await ctx.esperar(() => /^(Concluído|Erro|Parado|Interrompido)/.test(status()), 30000);
+          const est = await ctx.estado();
+          checks.push(
+            [`${modo}: o script não terminou (status: ${status()})`, !!fim],
+            [`${modo}: status deveria dizer que nada foi confirmado: ${status()}`,
+              status().startsWith("Erro") && status().includes("01/12/2026") &&
+              status().includes("Nada foi confirmado para este grupo") && status().includes("Nenhum grupo foi gravado.")],
+            [`${modo}: esperava 1 lote (só o 1º grupo), houve ${(est.lotes || []).length}`, (est.lotes || []).length === 1],
+          );
+          resumo.push(`${modo}: ${status().slice(0, 90)}…`);
+        }
+        return conferir(checks, resumo.join(" | "));
+      },
+    },
+    {
+      // A página recarrega depois do clique mas não gravou (as IMPs continuam com a data antiga):
+      // para no 1º grupo, diz que as IMPs não mostram a nova data e que nenhum grupo foi gravado
+      nome: "datas_exec_nao_gravou",
+      async rodar(ctx) {
+        await ctx.reset("apos_lote=ignora");
+        const pag = await ctx.rodar("datas_exec.js", "/hedge/Passo01b?Emp_ID=6");
+        const status = () => { const st = pag.doc.querySelector("#__st"); return st ? st.textContent : ""; };
+        const fim = await ctx.esperar(() => /^(Concluído|Erro|Parado|Interrompido)/.test(status()), 30000);
+        const est = await ctx.estado();
+        const lotes = est.lotes || [];
+        return conferir([
+          [`o script não terminou (status: ${status()})`, !!fim],
+          [`esperava 1 lote ignorado (só o 1º grupo), houve: ${JSON.stringify(lotes)}`,
+            lotes.length === 1 && lotes[0].resultado === "ignorado" && lotes[0].data === "2026-12-01"],
+          [`status deveria parar no grupo 01/12/2026: ${status()}`, status().startsWith("Erro") && status().includes("01/12/2026") &&
+            !status().includes("08/12/2026")],
+          [`status sem "não mostram a nova data": ${status()}`,
+            status().includes("não mostram a nova data: DEMO-1001/26-WEB-1, DEMO-1002/26-WEB-1")],
+          [`status sem "Nenhum grupo foi gravado.": ${status()}`, status().includes("Nenhum grupo foi gravado.")],
+          ["alguma data mudou no mock", datasMock(est, "Passo01b|6").every(([, d]) => d === "01/10/2026")],
+        ], status().slice(0, 140));
+      },
+    },
+    {
+      // Fechar no meio de um grupo: o status diz que foi interrompido pelo usuário, não tempo esgotado
+      nome: "datas_exec_fechar",
+      async rodar(ctx) {
+        await ctx.reset();
+        const pag = await ctx.rodar("datas_exec.js", "/hedge/Passo01b?Emp_ID=6");
+        const status = () => { const st = pag.doc.querySelector("#__st"); return st ? st.textContent : ""; };
+        const gravando = await ctx.esperar(() => status().startsWith("gravando grupo 1"), 15000, 20);
+        const fechar = pag.doc.querySelector("#__close");
+        if (fechar) fechar.click();
+        const textos = () => pag.logs.map(l => l.args.join(" "));
+        const fim = await ctx.esperar(() => textos().some(t => t.includes("Interrompido pelo usuário")), 15000);
+        await ctx.sleep(300);
+        const est = await ctx.estado();
+        return conferir([
+          [`não vi o status "gravando grupo 1" (status: ${status()})`, !!gravando],
+          ["o quadro não foi fechado", !pag.doc.querySelector("#__fr")],
+          [`o log não diz "Interrompido pelo usuário": ${JSON.stringify(textos().slice(-3))}`, !!fim],
+          ["o log fala em tempo esgotado", !textos().some(t => /a tempo/.test(t))],
+          [`esperava no máximo 1 lote, houve ${(est.lotes || []).length}`, (est.lotes || []).length <= 1],
+        ], `fechado no grupo 1: ${(textos().find(t => t.includes("Interrompido")) || "").replace(/^\S+\s+\S+\s+/, "").slice(0, 100)}`);
+      },
+    },
+    {
+      // Parar durante o grupo 1: termina o grupo e para antes do 2º ("Parado pelo usuário", só o 1º gravado).
+      // Parar e depois um erro de verdade (a página demora mais que o tempo limite): o status mostra o erro
+      // real, com o aviso de conferir na página, e não "Interrompido pelo usuário".
+      nome: "datas_exec_parar",
+      async rodar(ctx) {
+        const checks = [];
+        const resumo = [];
+        for (const [modo, script] of [["", "datas_exec.js"], ["apos_lote=demora", "datas_exec_curto.js"]]) {
+          await ctx.reset(modo);
+          const pag = await ctx.rodar(script, "/hedge/Passo01b?Emp_ID=6");
+          const status = () => { const st = pag.doc.querySelector("#__st"); return st ? st.textContent : ""; };
+          const gravando = await ctx.esperar(() => status().startsWith("gravando grupo 1"), 15000, 20);
+          const parar = pag.doc.querySelector("#__stop");
+          if (parar) parar.click();
+          const fim = await ctx.esperar(() => /^(Concluído|Erro|Parado|Interrompido)/.test(status()), 30000);
+          if (modo) await ctx.sleep(3500);
+          const est = await ctx.estado();
+          const lotes = (est.lotes || []).map(l => `${l.data}|${[...l.imps].sort().join(",")}`);
+          const datas = Object.fromEntries(datasMock(est, "Passo01b|6"));
+          const rotulo = modo || "normal";
+          checks.push(
+            [`${rotulo}: não vi o status "gravando grupo 1" (status: ${status()})`, !!gravando],
+            [`${rotulo}: o script não terminou (status: ${status()})`, !!fim],
+            [`${rotulo}: lotes: ${lotes.join(" / ")} (esperava só o 1º grupo)`, igual(lotes, ["2026-12-01|9101,9102"])],
+            [`${rotulo}: datas no mock: ${JSON.stringify(datas)}`, datas["9101"] === "01/12/2026" &&
+              datas["9102"] === "01/12/2026" && datas["9103"] === "01/10/2026" && datas["9104"] === "01/10/2026"],
+          );
+          if (!modo) {
+            checks.push([`normal: status deveria ser "Parado pelo usuário" com só o 1º grupo: ${status()}`,
+              status().startsWith("Parado pelo usuário") && status().includes("Já gravados: 01/12/2026 (2 IMPs).") &&
+              !status().includes("08/12/2026")]);
+          } else {
+            checks.push([`${modo}: status deveria mostrar o erro real e "confira na página": ${status()}`,
+              status().startsWith("Erro: a página não recarregou a tempo") && status().includes("confira na página") &&
+              !status().includes("Interrompido")]);
+          }
+          resumo.push(`${rotulo}: ${status().slice(0, 110)}`);
+        }
+        return conferir(checks, resumo.join(" | "));
+      },
+    },
+    {
+      // Código fora da página, data fora de "Data Pagto" ou código em dois grupos: nada é marcado nem gravado
+      nome: "datas_faltando",
+      async rodar(ctx) {
+        const checks = [];
+        for (const [script, falta] of [["datas_falta_codigo.js", "NAO-EXISTE-77"], ["datas_falta_data.js", "31/12/2026"],
+                                       ["datas_dois_grupos.js", "mais de um grupo de data: DEMO-1001/26-WEB-1"]]) {
+          await ctx.reset();
+          const pag = await ctx.rodar(script, "/hedge/Passo01b?Emp_ID=6");
+          await ctx.sleep(500);
+          const est = await ctx.estado();
+          const e = erros(pag);
+          checks.push(
+            [`${script}: o mock não tem a lista de lotes`, Array.isArray(est.lotes)],
+            [`${script}: esperava 0 lotes, houve ${(est.lotes || []).length}`, (est.lotes || []).length === 0],
+            [`${script}: console.error sem "Nada foi gravado" e ${falta}: ${JSON.stringify(e)}`,
+              e.some(m => m.includes("Nada foi gravado") && m.includes(falta))],
+            [`${script}: abriu o quadro de execução`, !pag.doc.querySelector("#__fr")],
+            [`${script}: marcou alguma caixa`, caixasDatas(pag.doc).length > 0 && caixasDatas(pag.doc).every(l => !l.cx.checked)],
+          );
+        }
+        // Simulação com algo faltando (no plano ou na estrutura da página): mostra o resumo por grupo
+        // E a lista do que faltou, no quadro e no console; nada é clicado nem gravado.
+        for (const [script, reset, falta, grupo1] of [
+          ["datas_sim_falta_codigo.js", "", "Códigos que não estão na página: NAO-EXISTE-77", "08/12/2026: 1 IMP(s) — USD 7.000,00 (1 não encontrada(s))"],
+          ["datas_sim_falta_data.js", "", "31/12/2026", "31/12/2026: 1 IMP(s) — USD 7.000,00"],
+          ["datas_sim_dois_grupos.js", "", "mais de um grupo de data: DEMO-1001/26-WEB-1", "08/12/2026: 2 IMP(s) — USD 17.000,00"],
+          ["datas_sim_br22.js", "falta=botao_lote", "#data_prev_pag_lote_botao", "08/12/2026: 2 IMP(s) — USD 8.234,56"],
+          ["datas_sim_br22.js", "falta=imps_atualizar", "#wImpsAtualizar", "08/12/2026: 2 IMP(s) — USD 8.234,56"],
+          ["datas_sim_br22.js", "falta=data_id:9103", "Caixas sem o IMP_ID (data-id com wImpID): DEMO-1003/26-WEB-2",
+            "08/12/2026: 2 IMP(s) — USD 8.234,56"],
+        ]) {
+          const rotulo = `${script}${reset ? " (" + reset + ")" : ""}`;
+          await ctx.reset(reset);
+          const pag = await ctx.rodar(script, "/hedge/Passo01b?Emp_ID=6");
+          await ctx.sleep(500);
+          const est = await ctx.estado();
+          const e = erros(pag);
+          const caixa = pag.doc.querySelector(".__datas_hedge");
+          const tc = caixa ? caixa.textContent : "";
+          const lista = pag.doc.getElementById("wImpsAtualizar");
+          checks.push(
+            [`${rotulo}: esperava 0 lotes, houve ${(est.lotes || []).length}`, (est.lotes || []).length === 0],
+            [`${rotulo}: quadro sem o resumo "01/12/2026: 2 IMP(s)" e "${grupo1}" e sem "${falta}": ${tc}`,
+              tc.includes("01/12/2026: 2 IMP(s) — USD 10.000,00; EUR 2.500,50") && tc.includes(grupo1) && tc.includes(falta) &&
+              tc.includes("Nada foi marcado nem gravado")],
+            [`${rotulo}: console.error sem o resumo e "${falta}": ${JSON.stringify(e)}`,
+              e.some(m => m.includes("01/12/2026: 2 IMP(s)") && m.includes(grupo1) && m.includes(falta))],
+            [`${rotulo}: esperava 2 console.table`, pag.logs.filter(l => l.tipo === "table").length === 2],
+            [`${rotulo}: abriu o quadro de execução`, !pag.doc.querySelector("#__fr")],
+            [`${rotulo}: marcou alguma caixa`, caixasDatas(pag.doc).length > 0 && caixasDatas(pag.doc).every(l => !l.cx.checked) &&
+              (!lista || lista.value === "")],
+          );
+        }
+        return conferir(checks, "Execução: código inexistente, data fora da lista e código em dois grupos: 0 lotes, mensagem com o que falta; " +
+          "Simulação (essas três e botão de lote, #wImpsAtualizar e data-id ausentes): resumo por grupo + o que falta, 0 cliques");
+      },
+    },
+    {
+      // Script de NOVOS colado no Passo 01b; script da BR21 na página da BR02
+      nome: "datas_pagina_errada",
+      async rodar(ctx) {
+        const checks = [];
+        for (const [script, url, certa] of [
+          ["datas_novos_br22.js", "/hedge/Passo01b?Emp_ID=6", "/hedge/Passo01a?Emp_ID=6"],
+          ["datas_expirados_br21.js", "/hedge/Passo01b?Emp_ID=3", "/hedge/Passo01b?Emp_ID=4"],
+        ]) {
+          await ctx.reset();
+          const pag = await ctx.rodar(script, url);
+          await ctx.sleep(500);
+          const est = await ctx.estado();
+          const e = erros(pag);
+          checks.push(
+            [`${script}: o mock não tem a lista de lotes`, Array.isArray(est.lotes)],
+            [`${script}: esperava 0 lotes, houve ${(est.lotes || []).length}`, (est.lotes || []).length === 0],
+            [`${script}: a página do mock não tem a tabela`, caixasDatas(pag.doc).length > 0],
+            [`${script}: console.error sem ${certa} e "Nada foi feito": ${JSON.stringify(e)}`,
+              e.some(m => m.includes(certa) && m.includes("Nada foi feito"))],
+            [`${script}: abriu o quadro de execução`, !pag.doc.querySelector("#__fr")],
+          );
+        }
+        return conferir(checks, "passo errado e empresa errada: 0 lotes, mensagem com a página certa");
+      },
+    },
+    {
       nome: "painel_carrega",
       async rodar(ctx) {
         const pag = await ctx.abrir("/painel/painel.html");
         const w = pag.win, d = pag.doc;
-        const cartoes = ["inclusao", "hedges", "previsoes"]
+        const cartoes = ["inclusao", "hedges", "previsoes", "datas-hedge"]
           .map(id => d.querySelector(`.cartao[data-tela="${id}"]`));
         const pdfOk = typeof w.pdfjsLib === "object" && typeof w.pdfjsLib.getDocument === "function";
         if (cartoes[2]) cartoes[2].click();
@@ -326,7 +598,7 @@
         const exeDepois = qPrev('input[type="radio"][value="execucao"]');
         const preDepois = qPrev("pre");
         // Orientações de uso na interface: cada tela tem "Como usar" e o script não tem comentários
-        const comoUsar = ["inclusao", "hedges", "previsoes"].map(id => {
+        const comoUsar = ["inclusao", "hedges", "previsoes", "datas-hedge"].map(id => {
           const t = d.getElementById(`tela-${id}`);
           const itens = t ? t.querySelectorAll(".como-usar li").length : 0;
           return `${id}=${itens}`;
@@ -334,7 +606,7 @@
         const comoOk = comoUsar.every(s => Number(s.split("=")[1]) >= 4);
         // "Como usar" fica na coluna da esquerda (não na coluna do script, que acompanha a rolagem)
         // e a coluna do script nunca passa da altura da tela: o que não couber rola dentro dela.
-        const comoNaEsquerda = ["inclusao", "hedges", "previsoes"].every(id => {
+        const comoNaEsquerda = ["inclusao", "hedges", "previsoes", "datas-hedge"].every(id => {
           const t = d.getElementById(`tela-${id}`);
           return !!t && !!t.querySelector(".coluna-esquerda .como-usar") && !t.querySelector(".coluna-direita .como-usar");
         });
@@ -361,7 +633,7 @@
             !!preDepois && preDepois.textContent.includes("const DRY_RUN = true;")],
           ["ao reabrir previsões a Execução deveria estar travada", !!exeDepois && exeDepois.disabled && !exeDepois.checked],
           [`erros no console: ${JSON.stringify(erros(pag))}`, erros(pag).length === 0],
-        ], "pdf.js carregado; 3 cartões; \"Como usar\" em cada tela; script sem comentários; previsões em Simulação com Execução bloqueada; reabrir volta a Simulação e trava");
+        ], "pdf.js carregado; 4 cartões; \"Como usar\" em cada tela; script sem comentários; previsões em Simulação com Execução bloqueada; reabrir volta a Simulação e trava");
       },
     },
     {
@@ -690,6 +962,91 @@
         p.push([`contador com 4: ${contador.textContent}`, contador.textContent === "4 códigos informados"]);
         p.push([`erros no console: ${JSON.stringify(erros(pag))}`, erros(pag).length === 0]);
         return conferir(p, "contador normalizado; faltas; segundos inválidos viram falta; mudar a pausa trava a Execução");
+      },
+    },
+    {
+      // Tela de datas de pagamento dos hedges: prévia por grupo, problemas, script e a trava
+      nome: "datas_ui",
+      async rodar(ctx) {
+        const pag = await ctx.abrir("/painel/painel.html");
+        const w = pag.win, d = pag.doc;
+        w.HTMLAnchorElement.prototype.click = function () {};
+        const cartao = d.querySelector('.cartao[data-tela="datas-hedge"]');
+        if (cartao) cartao.click();
+        const tela = d.getElementById("tela-datas-hedge");
+        if (!tela) return { ok: false, detalhe: "não há a tela de datas dos hedges" };
+        const q = s => tela.querySelector(s);
+        const ev = (el, tipo) => el.dispatchEvent(new w.Event(tipo, { bubbles: true }));
+        const digitar = (el, v) => { el.value = v; ev(el, "input"); ev(el, "change"); };
+        const area = q("textarea"), empresa = q("select");
+        const radios = [...tela.querySelectorAll('input[type="radio"][name="tipo"]')];
+        const pre = () => q(".coluna-direita pre");
+        const faltas = () => q(".coluna-direita .faltas");
+        const exe = () => q('.coluna-direita input[value="execucao"]');
+        const sim = () => q('.coluna-direita input[value="simulacao"]');
+        const bBaixar = () => [...tela.querySelectorAll(".coluna-direita .acoes button")].find(b => b.textContent === "Baixar .js");
+        const linhas = () => [...tela.querySelectorAll(".lista-pdfs tbody tr")].map(tr => [...tr.children].map(td => td.textContent));
+        const problemas = () => [...tela.querySelectorAll(".problemas-planilha li")].map(li => li.textContent);
+        if (!area || !empresa || radios.length !== 2) return { ok: false, detalhe: "a tela não tem empresa, tipo e a caixa de texto" };
+        const p = [];
+        p.push(["o tipo deveria começar sem seleção", radios.every(r => !r.checked)]);
+        p.push([`rótulos dos tipos: ${radios.map(r => r.parentNode.textContent.trim())}`,
+          radios.map(r => r.parentNode.textContent.trim()).join("|") === "Hedges Novos|Hedges Expirados"]);
+        p.push(["vazio: deveria mostrar faltas e esconder o script", pre().hidden && !faltas().hidden]);
+        digitar(area, "Código IMP\tData\nDEMO-1001/26-WEB-1\t01/10/2026\nDEMO-1002/26-WEB-1\t01/10/2026\nDEMO-1003/26-WEB-1\t15/10/2026\n");
+        p.push([`prévia: ${JSON.stringify(linhas())}`, linhas().length === 2 &&
+          linhas()[0][0] === "01/10/2026" && linhas()[0][1] === "2" && linhas()[1][0] === "15/10/2026" && linhas()[1][1] === "1"]);
+        p.push(["sem empresa e tipo, o script não deveria aparecer", pre().hidden]);
+        digitar(empresa, "BR22");
+        radios[0].click();
+        let s = pre().textContent;
+        p.push(["script deveria aparecer com Passo01a, Emp_ID 6 e DRY_RUN = true", !pre().hidden &&
+          /Passo01a/.test(s) && /EMP_ID\s*=\s*"?6"?;/.test(s) && /const DRY_RUN\s*= true;/.test(s) && s.includes("DEMO-1003/26-WEB-1")]);
+        radios[1].click();
+        p.push(["Hedges Expirados deveria usar Passo01b", /Passo01b/.test(pre().textContent)]);
+        // Linha com problema impede o script
+        digitar(area, area.value + "DEMO-1004/26-WEB-1\t31/02/2026\n");
+        p.push([`problemas: ${JSON.stringify(problemas())}`, problemas().length === 1 &&
+          problemas()[0].startsWith("Linha 5: DEMO-1004/26-WEB-1") && problemas()[0].includes("data inválida")]);
+        p.push(["com problema o script deveria sumir com a falta", pre().hidden &&
+          faltas().textContent.includes("Corrija as linhas com problema na lista.")]);
+        digitar(area, "DEMO-1001/26-WEB-1\t01/10/2026\nDEMO-1002/26-WEB-1\t15/10/2026\n");
+        p.push(["corrigido, o script deveria voltar", !pre().hidden && problemas().length === 0]);
+        // Trava
+        bBaixar().click();
+        p.push(["Execução deveria liberar após Baixar", !exe().disabled]);
+        exe().click();
+        p.push(["o script deveria ir para Execução", /const DRY_RUN\s*= false;/.test(pre().textContent)]);
+        digitar(area, "DEMO-1001/26-WEB-1\t02/10/2026\nDEMO-1002/26-WEB-1\t15/10/2026\n");
+        p.push(["mudar a planilha deveria desabilitar Execução", exe().disabled]);
+        p.push(["o modo deveria voltar a Simulação", sim().checked && /const DRY_RUN\s*= true;/.test(pre().textContent)]);
+        // Trocar a empresa ou o tipo também trava a Execução
+        const liberarExecucao = () => { bBaixar().click(); exe().click(); };
+        liberarExecucao();
+        p.push(["antes de trocar a empresa: Execução deveria estar ativa", /const DRY_RUN\s*= false;/.test(pre().textContent)]);
+        digitar(empresa, "BR21");
+        p.push(["trocar a empresa deveria desabilitar Execução", exe().disabled]);
+        p.push(["trocar a empresa deveria voltar a Simulação", sim().checked && /const DRY_RUN\s*= true;/.test(pre().textContent)]);
+        liberarExecucao();
+        p.push(["antes de trocar o tipo: Execução deveria estar ativa", /const DRY_RUN\s*= false;/.test(pre().textContent)]);
+        radios[0].click();
+        p.push(["trocar o tipo deveria desabilitar Execução", exe().disabled]);
+        p.push(["trocar o tipo deveria voltar a Simulação", sim().checked && /const DRY_RUN\s*= true;/.test(pre().textContent)]);
+        // Texto do usuário não vira HTML
+        digitar(area, "<b>X</b>\t01/10/2026\n");
+        p.push(["o código digitado virou HTML", !tela.querySelector(".lista-pdfs b") && linhas()[0][2] === "<B>X</B>"]);
+        // 375 px sem rolagem horizontal, com um grupo de muitos códigos longos
+        const longos = Array.from({ length: 12 }, (_, i) => `DEMO-${String(2001 + i)}/26-WEB-LONGO-${i + 1}`);
+        digitar(area, longos.map(c => c + "\t05/11/2026").join("\n") + "\n");
+        p.push([`prévia longa: ${JSON.stringify(linhas().map(l => l.slice(0, 2)))}`, linhas().length === 1 && linhas()[0][1] === "12"]);
+        const larguraAntes = ctx.iframe.style.width;
+        ctx.iframe.style.width = "375px";
+        await ctx.sleep(150);
+        const sw = d.documentElement.scrollWidth, cw = d.documentElement.clientWidth;
+        ctx.iframe.style.width = larguraAntes;
+        p.push([`a 375 px a página rola na horizontal (scrollWidth ${sw} > ${cw})`, sw <= cw]);
+        p.push([`erros no console: ${JSON.stringify(erros(pag))}`, erros(pag).length === 0]);
+        return conferir(p, "tipo vazio; prévia por grupo; problema impede o script; Passo e Emp_ID certos; mudar planilha, empresa ou tipo trava a Execução; 375 px sem rolagem com 12 códigos longos");
       },
     },
     {

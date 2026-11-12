@@ -25,8 +25,11 @@ CENARIOS_ESPERADOS = [
     "inclusao_terceiros_sim", "inclusao_terceiros_gravar", "inclusao_regravar",
     "inclusao_hedge_gravar", "inclusao_sessao_expirada", "inclusao_data_errada",
     "hedges_sim", "hedges_exec", "hedges_exec_nenhuma", "previsoes_sim", "previsoes_exec",
+    "datas_sim", "datas_exec", "datas_exec_sem_prova", "datas_exec_nao_gravou", "datas_exec_fechar",
+    "datas_exec_parar", "datas_faltando",
+    "datas_pagina_errada",
     "painel_carrega", "extracao_pdfs", "coluna_trava", "inclusao_ui", "pasta_mista",
-    "hedges_ui", "trava_ui",
+    "hedges_ui", "datas_ui", "trava_ui",
 ]
 
 

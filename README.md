@@ -5,6 +5,7 @@ Ferramentas para preparar scripts que são colados no console do navegador (F12)
 - **Inclusão de contratos**: lê os PDFs de contratação e grava os contratos nos pagamentos (Terceiros e Hedge).
 - **Limpeza de hedges**: remove do hedge as IMPs que não devem ficar.
 - **Exclusão de previsões**: exclui todos os lançamentos de previsão visíveis na tabela do Caixa.
+- **Data de pagamento dos hedges**: define a data de pagamento do hedge das IMPs do Passo 01 (Hedges Novos ou Hedges Expirados), por grupo de data, a partir de uma planilha colada.
 
 ## Para a equipe: o painel
 
@@ -20,6 +21,7 @@ Observações:
 - O painel precisa de acesso à internet: a biblioteca que lê PDFs (pdf.js) é carregada da internet.
 - Os PDFs nunca são enviados a lugar nenhum. Eles são lidos dentro do próprio navegador.
 - Não há nada para instalar.
+- Na tela de datas de pagamento dos hedges, cole a planilha com as duas colunas, código da IMP e data, copiadas direto do Excel.
 - Os arquivos `remocao_hedges.js` e `removao_previsoes.js` na raiz do repositório são as versões antigas dos scripts; use o painel no lugar deles.
 
 ## Alternativa em Python

@@ -27,6 +27,10 @@
         <strong>Exclusão de previsões</strong>
         <span>Exclui todos os lançamentos da tabela do Caixa filtrada.</span>
       </button>
+      <button type="button" class="cartao" data-tela="datas-hedge">
+        <strong>Data de pagamento dos hedges</strong>
+        <span>Define a data de pagamento do hedge das IMPs do Passo 01, por grupo de data.</span>
+      </button>
     </div>
   </section>
 
@@ -39,6 +43,10 @@
   </section>
 
   <section id="tela-previsoes" class="tela" hidden>
+    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+  </section>
+
+  <section id="tela-datas-hedge" class="tela" hidden>
     <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
   </section>
 </main>
@@ -54,15 +62,18 @@
 <script src="js/raiz.js"></script>
 <script src="js/config.js"></script>
 <script src="js/extracao.js"></script>
+<script src="js/planilha-datas.js"></script>
 <script src="js/gerador.js"></script>
 <script src="js/trava.js"></script>
 <script src="modelos/inclusao.js"></script>
 <script src="modelos/hedges.js"></script>
 <script src="modelos/previsoes.js"></script>
+<script src="modelos/datas-hedge.js"></script>
 <script src="js/coluna-script.js"></script>
 <script src="js/tela-inclusao.js"></script>
 <script src="js/tela-hedges.js"></script>
 <script src="js/tela-previsoes.js"></script>
+<script src="js/tela-datas-hedge.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

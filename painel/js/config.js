@@ -12,7 +12,13 @@
     HEDGE: { rotulo: "Hedge", caminho: "hedge" },
   };
 
-  exportar({ EMPRESAS, TIPOS });
+  // Rotina de datas dos hedges -> passo do T.IMP
+  const PASSOS_HEDGE = {
+    NOVOS: { rotulo: "Hedges Novos", passo: "Passo01a" },
+    EXPIRADOS: { rotulo: "Hedges Expirados", passo: "Passo01b" },
+  };
+
+  exportar({ EMPRESAS, TIPOS, PASSOS_HEDGE });
 })(function (api) {
   if (typeof module !== "undefined" && module.exports) Object.assign(module.exports, api);
   else Object.assign(window.Painel, api);

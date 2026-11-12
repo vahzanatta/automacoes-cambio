@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { montarInclusao, montarHedges, montarPrevisoes } = require("../../painel/js/gerador.js");
+const { montarInclusao, montarHedges, montarPrevisoes, montarDatasHedge } = require("../../painel/js/gerador.js");
 
 // As orientações de uso ficam na interface do painel; o script gerado é só código.
 // Os dados de teste não têm "//" nem "/*", então qualquer ocorrência é comentário.
@@ -23,5 +23,9 @@ for (const dryRun of [true, false]) {
   });
   test(`previsões sem comentários (${modo})`, () => {
     semComentarios("previsões", montarPrevisoes({ dryRun }));
+  });
+  test(`datas dos hedges sem comentários (${modo})`, () => {
+    semComentarios("datas dos hedges", montarDatasHedge({ empresa: "BR21", tipo: "NOVOS", dryRun,
+      grupos: [{ data: "2026-12-01", codigos: ["A-1", "B-2"] }, { data: "2026-12-08", codigos: ["C-3"] }] }));
   });
 }

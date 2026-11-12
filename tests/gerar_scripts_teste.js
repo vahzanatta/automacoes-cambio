@@ -2,7 +2,7 @@
 // (com tests/saida/pdfs/esperado.json). Só dados sintéticos. Rode: node tests/gerar_scripts_teste.js
 const fs = require("fs");
 const path = require("path");
-const { montarInclusao, montarHedges, montarPrevisoes } = require("../painel/js/gerador.js");
+const { montarInclusao, montarHedges, montarPrevisoes, montarDatasHedge } = require("../painel/js/gerador.js");
 
 const SAIDA = path.join(__dirname, "saida");
 const PDFS = path.join(SAIDA, "pdfs");
@@ -24,6 +24,20 @@ const MANTER = "DEMO-0716/26-WEB-1\n602";
 const MANTER_SIM = MANTER + "\n<b>nao-existe</b>";
 // Nenhum código está na página: a Execução tem de abortar sem remover nada
 const MANTER_NENHUMA = "NAO-EXISTE-1\nNAO-EXISTE-2";
+
+// Datas dos hedges (Passo 01 simulado): 2 grupos; um código em minúsculas e com espaços
+// (a comparação ignora caixa e pontas). "DEMO-1001/26-WEB-11" está na página e não pode
+// ser pego por "contém" "DEMO-1001/26-WEB-1".
+const GRUPOS_DATAS = [
+  { data: "2026-12-01", codigos: ["DEMO-1001/26-WEB-1", "DEMO-1002/26-WEB-1"] },
+  { data: "2026-12-08", codigos: ["DEMO-1003/26-WEB-2", " demo-1004/26-web-2 "] },
+];
+const GRUPOS_FALTA_CODIGO = [GRUPOS_DATAS[0], { data: "2026-12-08", codigos: ["DEMO-1003/26-WEB-2", "NAO-EXISTE-77"] }];
+const GRUPOS_FALTA_DATA = [GRUPOS_DATAS[0], { data: "2026-12-31", codigos: ["DEMO-1003/26-WEB-2"] }];
+const GRUPOS_DOIS_GRUPOS = [GRUPOS_DATAS[0], { data: "2026-12-08", codigos: ["DEMO-1003/26-WEB-2", "demo-1001/26-web-1"] }];
+const datasExec = (empresa, tipo, grupos) =>
+  montarDatasHedge({ empresa, tipo, grupos, dryRun: false, timeoutMs: 10000, pausaMs: 100 });
+const datasSim = (empresa, tipo, grupos) => montarDatasHedge({ empresa, tipo, grupos, dryRun: true });
 
 const escaparPdf = t => t.replace(/[\\()]/g, c => "\\" + c);
 
@@ -103,6 +117,19 @@ function main() {
     "hedges_exec_nenhuma.js": montarHedges({ manter: MANTER_NENHUMA, dryRun: false, timeoutMs: 10000, pausaMs: 100 }),
     "previsoes_sim.js": montarPrevisoes({ dryRun: true }),
     "previsoes_exec.js": montarPrevisoes({ dryRun: false }),
+    "datas_sim.js": montarDatasHedge({ empresa: "BR21", tipo: "NOVOS", grupos: GRUPOS_DATAS, dryRun: true }),
+    "datas_exec.js": datasExec("BR22", "EXPIRADOS", GRUPOS_DATAS),
+    "datas_falta_codigo.js": datasExec("BR22", "EXPIRADOS", GRUPOS_FALTA_CODIGO),
+    "datas_falta_data.js": datasExec("BR22", "EXPIRADOS", GRUPOS_FALTA_DATA),
+    "datas_dois_grupos.js": datasExec("BR22", "EXPIRADOS", GRUPOS_DOIS_GRUPOS),
+    "datas_sim_falta_codigo.js": datasSim("BR22", "EXPIRADOS", GRUPOS_FALTA_CODIGO),
+    "datas_sim_falta_data.js": datasSim("BR22", "EXPIRADOS", GRUPOS_FALTA_DATA),
+    "datas_sim_dois_grupos.js": datasSim("BR22", "EXPIRADOS", GRUPOS_DOIS_GRUPOS),
+    "datas_sim_br22.js": datasSim("BR22", "EXPIRADOS", GRUPOS_DATAS),
+    "datas_exec_curto.js": montarDatasHedge({ empresa: "BR22", tipo: "EXPIRADOS", grupos: GRUPOS_DATAS, dryRun: false,
+                                              timeoutMs: 1500, pausaMs: 100 }),
+    "datas_novos_br22.js": datasExec("BR22", "NOVOS", GRUPOS_DATAS),
+    "datas_expirados_br21.js": datasExec("BR21", "EXPIRADOS", GRUPOS_DATAS),
   };
   for (const [nome, texto] of Object.entries(scripts)) fs.writeFileSync(path.join(SAIDA, nome), texto, "utf8");
   console.log("Gerados em tests/saida:", Object.keys(scripts).join(", "));
