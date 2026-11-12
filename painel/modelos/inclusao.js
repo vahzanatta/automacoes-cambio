@@ -1,6 +1,6 @@
 (function (exportar) {
   function inclusao() {
-//<<INICIO
+// Documentação do modelo (fica fora do script gerado):
 // ============================================================================
 //  T.IMP - Inclusão de contratos de câmbio (gerado pelo painel ou pelo automacao_timp.py)
 //
@@ -11,15 +11,14 @@
 //  Conferiu a tabela? Gere o script de Execução no painel e rode-o
 //  (no Python, troque DRY_RUN para false).
 // ============================================================================
+//<<INICIO
 (async () => {
-  const EMPRESA    = __EMPRESA__;  // só para conferência
+  const EMPRESA    = __EMPRESA__;
   const EMP_ID     = __EMP_ID__;
-  const TIPO       = __TIPO__;  // "pagterceiro" (Terceiros) ou "hedge"
-  const DATA_PAGTO = __DATA_PAGTO__;  // data do filtro (AAAA-MM-DD)
-  const DRY_RUN    = __DRY_RUN__;  // true = só simula | false = grava de verdade
+  const TIPO       = __TIPO__;
+  const DATA_PAGTO = __DATA_PAGTO__;
+  const DRY_RUN    = __DRY_RUN__;
 
-  // Contratos lidos dos PDFs. "data_contrato" é opcional (AAAA-MM-DD): sem ela,
-  // fica a data que o portal sugere.
   const CONTRATOS = __CONTRATOS__;
 
   const BASE     = `/contrato/${TIPO}/`;
@@ -35,10 +34,9 @@
     return new DOMParser().parseFromString(await r.text(), "text/html");
   }
 
-  // ---------- Lista de pagamentos ----------
   const PREFIXO_BOTAO = "button_name_atualizar_contrato";
-  let botoesDaLista = [];   // nomes de botão de edição vistos na própria lista
-  let resumoPagina = "";    // para a mensagem de erro, se a lista vier vazia
+  let botoesDaLista = [];
+  let resumoPagina = "";
 
   async function lerLista() {
     const doc = await getDoc(urlLista);
@@ -60,7 +58,6 @@
       }));
   }
 
-  // Acha a(s) linha(s) do pagamento: valor exato ou a menor combinação que fecha o valor
   function acharLinhas(cands, alvo) {
     const exata = cands.find(c => c.cents === alvo);
     if (exata) return [exata];
@@ -80,10 +77,6 @@
     return cands.filter((_, i) => melhor.mask & (1 << i));
   }
 
-  // ---------- Formulário de edição ----------
-  // Abre com ?<nome do botão>=<id do pagamento>. O nome do botão acompanha a página
-  // (..._pagterceiro / ..._hedge): o script testa as opções, só lendo, e fica com a
-  // que mostrar o campo do nº do contrato.
   let botaoEdicao = null;
   const campoContrato = doc => doc.querySelector("[name='Ctt_Numero'], #id_Ctt_Numero");
 
@@ -101,7 +94,6 @@
                     `Botões testados: ${opcoes.join(", ")}.${ultimoErro}`);
   }
 
-  // Abre o formulário de um pagamento e grava (sempre "Somente ESTE pagamento")
   async function gravar(id, c) {
     const { url, doc } = await abrirEdicao(id);
     const form = campoContrato(doc).closest("form") || doc.querySelector("form[method='post']");
@@ -125,7 +117,6 @@
     if (!r.ok) throw new Error(`HTTP ${r.status} ao gravar ${id}`);
   }
 
-  // ============================ EXECUÇÃO ============================
   console.log(`%cT.IMP | ${EMPRESA} (Emp_ID ${EMP_ID}) | ${TIPO} | data ${DATA_PAGTO} | ` +
               `${CONTRATOS.length} contrato(s) | ${DRY_RUN ? "SIMULAÇÃO" : "GRAVANDO"}`,
               "color:#007bff;font-weight:bold;font-size:14px");
@@ -187,8 +178,6 @@
     return;
   }
 
-  // Antes de gravar (e também na simulação), confere se o formulário de edição abre.
-  // É só leitura: nada é gravado aqui.
   try {
     await abrirEdicao(plano[0].ids[0]);
     console.log(`Formulário de edição: OK (${botaoEdicao})`);
@@ -215,7 +204,6 @@
     }
   }
 
-  // Conferência: relê a lista e verifica se o número ficou gravado
   const depois = await lerLista();
   const conferencia = plano.flatMap(p => p.ids.map(id => {
     const l = depois.find(x => x.id === id);

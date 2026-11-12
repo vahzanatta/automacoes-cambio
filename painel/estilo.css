@@ -137,6 +137,10 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--primaria); }
 .status { font-size: 13px; color: var(--suave); }
 
 .onde { margin: 12px 0 0; font-size: 13px; color: var(--suave); }
+.como-usar { margin: 12px 0 0; font-size: 13px; }
+.como-usar summary { cursor: pointer; font-weight: 600; }
+.como-usar ol { margin: 6px 0 0; padding-left: 20px; }
+.como-usar li { margin: 4px 0; }
 
 /* Formulário das telas de processo */
 .formulario { display: grid; gap: 12px; margin: 16px 0; }

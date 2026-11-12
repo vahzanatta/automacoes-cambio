@@ -11,6 +11,14 @@
   ];
   const MSG_ERRO_PDF = "Erro: não consegui ler o PDF (arquivo inválido ou corrompido).";
   const ONDE_COLAR = "Página Contratos (Terceiros ou Hedge) do T.IMP, logado — console (F12)";
+  const COMO_USAR = [
+    "No Chrome, abra o T.IMP logado, na página de Contratos do tipo escolhido (Terceiros ou Hedge).",
+    "Aperte F12, abra a aba Console, cole o script de Simulação e aperte Enter.",
+    "Simulação: o console mostra quais contratos casaram com quais pagamentos e quais não casaram (com o motivo). Nada é gravado.",
+    "Se aparecer \"Nenhum contrato casou\", veja o motivo: os pagamentos podem já estar com o número do contrato.",
+    "Conferiu? Volte aqui, escolha Execução, copie e cole no console da mesma página.",
+    "Execução: o script grava o número em cada pagamento e, no fim, confere o que ficou gravado (✅/❌).",
+  ];
 
   function criar(tag, attrs, filhos) {
     const e = document.createElement(tag);
@@ -100,6 +108,7 @@
       dados,
       nomeArquivo: "incluir_contratos.js",
       ondeColar: ONDE_COLAR,
+      comoUsar: COMO_USAR,
     });
 
     function atualizar() {

@@ -325,7 +325,17 @@
         const simDepois = qPrev('input[type="radio"][value="simulacao"]');
         const exeDepois = qPrev('input[type="radio"][value="execucao"]');
         const preDepois = qPrev("pre");
+        // Orientações de uso na interface: cada tela tem "Como usar" e o script não tem comentários
+        const comoUsar = ["inclusao", "hedges", "previsoes"].map(id => {
+          const t = d.getElementById(`tela-${id}`);
+          const itens = t ? t.querySelectorAll(".como-usar li").length : 0;
+          return `${id}=${itens}`;
+        });
+        const comoOk = comoUsar.every(s => Number(s.split("=")[1]) >= 4);
+        const scriptLimpo = !!preDepois && !/\/\/|\/\*/.test(preDepois.textContent);
         return conferir([
+          [`"Como usar" com pelo menos 4 passos em cada tela (${comoUsar.join(", ")})`, comoOk],
+          ["o script mostrado no painel não deveria ter comentários", scriptLimpo],
           ["pdfjsLib.getDocument não é função", pdfOk],
           [`cartões: ${cartoes.map(c => !!c).join(", ")}`, cartoes.every(Boolean)],
           ["a tela de previsões não apareceu", visivel],
@@ -339,7 +349,7 @@
             !!preDepois && preDepois.textContent.includes("const DRY_RUN = true;")],
           ["ao reabrir previsões a Execução deveria estar travada", !!exeDepois && exeDepois.disabled && !exeDepois.checked],
           [`erros no console: ${JSON.stringify(erros(pag))}`, erros(pag).length === 0],
-        ], "pdf.js carregado; 3 cartões; previsões em Simulação com Execução bloqueada; reabrir volta a Simulação e trava");
+        ], "pdf.js carregado; 3 cartões; \"Como usar\" em cada tela; script sem comentários; previsões em Simulação com Execução bloqueada; reabrir volta a Simulação e trava");
       },
     },
     {

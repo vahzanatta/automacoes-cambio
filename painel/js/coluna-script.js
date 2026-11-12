@@ -43,7 +43,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function criarColunaScript(el, { gerar, dados, nomeArquivo, ondeColar }) {
+  function criarColunaScript(el, { gerar, dados, nomeArquivo, ondeColar, comoUsar }) {
     const trava = P.criarTrava();
     const grupo = "modo-" + (++contador);
     let modo = "simulacao";
@@ -68,10 +68,16 @@
     const bBaixar = criar("button", { type: "button", class: "botao", texto: "Baixar .js" });
     const status = criar("span", { class: "status", "aria-live": "polite" });
     const onde = criar("p", { class: "onde", texto: "Onde colar: " + ondeColar });
+    // Orientações de uso: ficam aqui na interface (o script gerado não tem comentários)
+    const como = criar("details", { class: "como-usar", open: "" }, [
+      criar("summary", { texto: "Como usar" }),
+      criar("ol", {}, (comoUsar || []).map(t => criar("li", { texto: t }))),
+    ]);
+    como.hidden = !(comoUsar && comoUsar.length);
 
     el.classList.add("coluna-script");
     [criar("h2", { texto: "Script" }), modos, motivo, aviso, pre, faltas,
-     criar("div", { class: "acoes" }, [bCopiar, bBaixar, status]), onde]
+     criar("div", { class: "acoes" }, [bCopiar, bBaixar, status]), onde, como]
       .forEach(f => el.appendChild(f));
 
     function assinaturaAtual() {

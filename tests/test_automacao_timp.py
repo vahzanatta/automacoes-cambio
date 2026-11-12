@@ -173,6 +173,17 @@ class PontaAPonta(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr.decode("utf-8", "replace"))
         self.assertEqual(gerado, r.stdout.decode("utf-8"))
 
+    def test_orientacoes_na_tela_e_script_sem_comentarios(self):
+        import contextlib
+        import io
+        tela = io.StringIO()
+        with contextlib.redirect_stdout(tela):
+            automacao_timp.main()
+        self.assertIn("COMO USAR", tela.getvalue())
+        self.assertIn("F12", tela.getvalue())
+        gerado = (self.tmp / "saida.js").read_text(encoding="utf-8")
+        self.assertNotRegex(gerado, r"//|/\*")
+
     def test_saida_relativa_fica_ao_lado_do_py(self):
         self.assertEqual(automacao_timp.caminho_saida("x.js"),
                          Path(automacao_timp.__file__).resolve().parent / "x.js")

@@ -2,6 +2,14 @@
 // Texto do usuário só entra no DOM por textContent/value.
 (function (P) {
   const ONDE_COLAR = "Página Hedge – Passo 02 do T.IMP — console (F12)";
+  const COMO_USAR = [
+    "No T.IMP, abra a página Hedge – Passo 02.",
+    "Aperte F12, abra a aba Console, cole o script de Simulação e aperte Enter.",
+    "Simulação: as IMPs que ficam aparecem em verde e as que saem em vermelho, com um resumo no canto da página. Nada é removido.",
+    "Conferiu? Volte aqui, escolha Execução, copie e cole no console da mesma página.",
+    "Execução: a página abre em tela cheia e remove uma IMP por vez, recarregando a cada remoção. Não feche a aba; para interromper, clique em Parar.",
+    "Se nenhuma IMP da lista estiver na página, o script para sem remover nada.",
+  ];
   const FALTA_ESPERA = "Informe um tempo de espera válido (em segundos).";
   const FALTA_PAUSA = "Informe uma pausa válida (em segundos).";
 
@@ -73,6 +81,7 @@
       dados,
       nomeArquivo: "remover_hedges.js",
       ondeColar: ONDE_COLAR,
+      comoUsar: COMO_USAR,
     });
 
     function atualizar() {

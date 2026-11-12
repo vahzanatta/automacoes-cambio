@@ -276,7 +276,31 @@ def main():
     print(f"  Tipo:    {TIPO_CONTRATO} (contrato/{TIPOS_CONTRATO[TIPO_CONTRATO]})")
     print(f"  Data:    {DATA_PAGAMENTO}")
     print(f"  Modo:    {'SIMULAÇÃO (DRY_RUN = true)' if DRY_RUN else 'GRAVAÇÃO (DRY_RUN = false)'}")
-    print("\nPróximo passo: cole o conteúdo do arquivo no console (F12) do T.IMP.")
+    for linha in como_usar(DRY_RUN):
+        print(linha)
+
+
+def como_usar(dry_run):
+    """Orientações de uso (o script gerado não tem comentários: elas ficam aqui e no painel)."""
+    linhas = [
+        "",
+        "COMO USAR",
+        "  1. No Chrome, abra o T.IMP logado, na página de Contratos do tipo escolhido.",
+        "  2. Aperte F12, abra a aba Console, cole o conteúdo do arquivo e aperte Enter.",
+    ]
+    if dry_run:
+        linhas += [
+            "  3. Simulação: o console mostra quais contratos casaram e quais não (com o motivo).",
+            "     Nada é gravado.",
+            "  4. Conferiu? Mude DRY_RUN para False neste arquivo, rode de novo e cole o novo",
+            "     arquivo no console da mesma página para gravar.",
+        ]
+    else:
+        linhas += [
+            "  3. Execução: o script grava o número em cada pagamento e, no fim, confere o que",
+            "     ficou gravado (✅/❌). Rode antes em Simulação (DRY_RUN = True).",
+        ]
+    return linhas
 
 
 if __name__ == "__main__":

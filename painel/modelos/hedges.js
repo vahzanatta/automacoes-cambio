@@ -1,6 +1,6 @@
 (function (exportar) {
   function hedges() {
-//<<INICIO
+// Documentação do modelo (fica fora do script gerado):
 // =====================================================================
 //  Remover IMPs dos Hedges, mantendo só as da lista
 //  Cole no console (F12) da página "Hedge - Passo 02".
@@ -15,14 +15,13 @@
 //  Conferiu? Gere o script de Execução no painel e rode-o.
 //  Para parar no meio: clique em "Parar" ou rode  window.__pararRemocao = true
 // =====================================================================
+//<<INICIO
 (() => {
-  // ---------- CONFIGURAÇÃO ----------
-  const MANTER = __MANTER__;   // um por linha (ou separado por vírgula/;).
-  const DRY_RUN = __DRY_RUN__;   // true = só lista; false = remove de verdade
-  const URL_INICIAL = location.href;   // página que o iframe abre
-  const TIMEOUT_RECARGA_MS = __TIMEOUT_RECARGA_MS__;    // quanto esperar cada recarga
-  const PAUSA_MS = __PAUSA_MS__;           // folga depois de cada carga
-  // -----------------------------------
+  const MANTER = __MANTER__;
+  const DRY_RUN = __DRY_RUN__;
+  const URL_INICIAL = location.href;
+  const TIMEOUT_RECARGA_MS = __TIMEOUT_RECARGA_MS__;
+  const PAUSA_MS = __PAUSA_MS__;
 
   const norm = s => (s || '').replace(/\s+/g, ' ').trim().toUpperCase();
   const manter = new Set(MANTER.split(/[\n,;]+/).map(norm).filter(Boolean));
@@ -31,7 +30,6 @@
 
   if (!manter.size) { log('Lista MANTER vazia. Abortado.'); return; }
 
-  // Acha as linhas de IMP (as que têm o botão "Remover IMP do Hedge")
   function lerLinhas(doc) {
     const botoes = doc.querySelectorAll(
       'button[name="button_name_remover_imp_do_hedge"], button[id^="button_name_remover_imp_do_hedge"], button[title="Remover IMP do Hedge"], button[data-original-title="Remover IMP do Hedge"]');
@@ -54,7 +52,6 @@
     return { remover, naoAchados, mantidas: linhas.length - remover.length };
   }
 
-  // ---------- DRY RUN: só olha a página atual ----------
   if (DRY_RUN) {
     const linhas = lerLinhas(document);
     if (!linhas.length) {
@@ -68,11 +65,9 @@
     log('Vão ser REMOVIDAS:');
     console.table(r.remover.map(l => ({ Hedge: l.hedge.replace('collapse_', ''), IMP_id: l.impId, 'Código IMP': l.codigo })));
     if (r.naoAchados.length) console.warn('[remover-imps] Da lista MANTER, não encontrei na página:', r.naoAchados);
-    // Também em texto simples (caso a tabela não apareça no console)
     console.log('[remover-imps] REMOVER (' + r.remover.length + '):\n' + r.remover.map(l => `  hedge ${l.hedge.replace('collapse_', '')}  IMP ${l.impId}  ${l.codigo}`).join('\n'));
     log('Se estiver certo, gere o script de Execução no painel e rode-o.');
 
-    // Mostra na própria página: verde = fica, vermelho = sai. Abre todos os hedges.
     document.querySelectorAll('div.collapse[id^="collapse_"]').forEach(p => p.classList.add('show'));
     document.querySelectorAll('.__prev').forEach(e => e.remove());
     linhas.forEach(l => {
@@ -90,7 +85,6 @@
       <span class="__nao_achados"></span>
       <br><button style="margin-top:8px">Fechar</button>`;
     if (r.naoAchados.length) {
-      // Códigos digitados pelo usuário: só por textContent, nunca como HTML
       const nao = painel.querySelector('.__nao_achados');
       const span = document.createElement('span');
       span.style.color = '#b8860b';
@@ -102,7 +96,6 @@
     return;
   }
 
-  // ---------- EXECUÇÃO REAL ----------
   window.__pararRemocao = false;
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#fff;display:flex;flex-direction:column';
@@ -131,7 +124,7 @@
     while (!window.__pararRemocao) {
       await sleep(PAUSA_MS);
       const w = fr.contentWindow, doc = fr.contentDocument;
-      w.confirm = () => true;          // caso o site peça confirmação
+      w.confirm = () => true;
       w.alert = m => log('alert do site:', m);
 
       const linhas = lerLinhas(doc);
@@ -151,7 +144,6 @@
       if (tentativasMesmo >= 2) { st(`A IMP ${alvo.codigo} continua na página depois de 3 tentativas. Parei.`); return; }
       ultimo = chave;
 
-      // Abre o collapse do hedge (a página recarrega com tudo fechado)
       const painel = alvo.btn.closest('.collapse');
       if (painel && !painel.classList.contains('show')) {
         if (w.jQuery && w.jQuery.fn.collapse) w.jQuery(painel).collapse('show'); else painel.classList.add('show');

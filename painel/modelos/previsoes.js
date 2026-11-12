@@ -1,6 +1,6 @@
 (function (exportar) {
   function previsoes() {
-//<<INICIO
+// Documentação do modelo (fica fora do script gerado):
 // =====================================================================
 //  Excluir todas as previsões (lançamentos) da tabela do Caixa
 //  Cole no console (F12) da página do Caixa, já filtrada.
@@ -8,8 +8,9 @@
 //  Em simulação (DRY_RUN = true) só pinta de vermelho as linhas que
 //  seriam excluídas e lista tudo no console. Nada é excluído.
 // =====================================================================
+//<<INICIO
 (async function deleteAllItemsByArray() {
-  const DRY_RUN = __DRY_RUN__;   // true = só mostra; false = exclui de verdade
+  const DRY_RUN = __DRY_RUN__;
   const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
   console.log("=== INICIANDO EXCLUSÃO EM LOTE POR ARRAY ===" + (DRY_RUN ? " (SIMULAÇÃO)" : ""));
