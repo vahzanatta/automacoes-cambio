@@ -12,8 +12,10 @@
   const MSG_ERRO_PDF = "Erro: não consegui ler o PDF (arquivo inválido ou corrompido).";
   const ONDE_COLAR = "Página Contratos (Terceiros ou Hedge) do T.IMP, logado — console (F12)";
   const COMO_USAR = [
-    "No Chrome, abra o T.IMP logado, na página de Contratos do tipo escolhido (Terceiros ou Hedge).",
-    "Aperte F12, abra a aba Console, cole o script de Simulação e aperte Enter.",
+    "Abaixo, escolha a empresa, o tipo de contrato, a data de pagamento e a pasta com os PDFs de contratação.",
+    "Confira a lista: corrija o que estiver em vermelho e desmarque o que não deve entrar.",
+    "Com Simulação marcada, copie ou baixe o script ao lado.",
+    "No T.IMP logado, abra a página de Contratos do tipo escolhido, aperte F12, abra a aba Console, cole o script e aperte Enter.",
     "Simulação: o console mostra quais contratos casaram com quais pagamentos e quais não casaram (com o motivo). Nada é gravado.",
     "Se aparecer \"Nenhum contrato casou\", veja o motivo: os pagamentos podem já estar com o número do contrato.",
     "Conferiu? Volte aqui, escolha Execução, copie e cole no console da mesma página.",
@@ -66,11 +68,7 @@
     const campo = (rotulo, controle) => criar("label", { class: "campo" }, [criar("span", { texto: rotulo }), controle]);
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
       criar("h2", { texto: "Inclusão de contratos" }),
-      criar("ol", { class: "passos" }, [
-        criar("li", { texto: "Escolha a empresa, o tipo de contrato, a data de pagamento e a pasta com os PDFs de contratação." }),
-        criar("li", { texto: "Confira a lista: corrija o que estiver em vermelho e desmarque o que não deve entrar." }),
-        criar("li", { texto: "Copie ou baixe o script em Simulação, cole no console e confira. Depois escolha Execução para gravar." }),
-      ]),
+      P.criarComoUsar(COMO_USAR),
       criar("div", { class: "formulario" }, [
         campo("Empresa", empresa),
         criar("fieldset", { class: "campo tipos" }, [criar("legend", { texto: "Tipo de contrato" })]
@@ -108,7 +106,6 @@
       dados,
       nomeArquivo: "incluir_contratos.js",
       ondeColar: ONDE_COLAR,
-      comoUsar: COMO_USAR,
     });
 
     function atualizar() {

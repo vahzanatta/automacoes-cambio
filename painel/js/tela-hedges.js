@@ -3,8 +3,9 @@
 (function (P) {
   const ONDE_COLAR = "Página Hedge – Passo 02 do T.IMP — console (F12)";
   const COMO_USAR = [
-    "No T.IMP, abra a página Hedge – Passo 02.",
-    "Aperte F12, abra a aba Console, cole o script de Simulação e aperte Enter.",
+    "Abaixo, informe as IMPs que devem permanecer no hedge, uma por linha (vírgula e ponto e vírgula também separam).",
+    "Com Simulação marcada, copie ou baixe o script ao lado.",
+    "No T.IMP, abra a página Hedge – Passo 02, aperte F12, abra a aba Console, cole o script e aperte Enter.",
     "Simulação: as IMPs que ficam aparecem em verde e as que saem em vermelho, com um resumo no canto da página. Nada é removido.",
     "Conferiu? Volte aqui, escolha Execução, copie e cole no console da mesma página.",
     "Execução: a página abre em tela cheia e remove uma IMP por vez, recarregando a cada remoção. Não feche a aba; para interromper, clique em Parar.",
@@ -42,11 +43,7 @@
 
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
       criar("h2", { texto: "Limpeza de hedges" }),
-      criar("ol", { class: "passos" }, [
-        criar("li", { texto: "Cole abaixo as IMPs que devem permanecer no hedge, uma por linha (vírgula e ponto e vírgula também separam)." }),
-        criar("li", { texto: "Copie ou baixe o script em Simulação, cole no console do Passo 02 e confira o que seria removido." }),
-        criar("li", { texto: "Depois escolha Execução, copie de novo e cole no console para remover." }),
-      ]),
+      P.criarComoUsar(COMO_USAR),
       criar("div", { class: "formulario" }, [
         campo("IMPs que devem PERMANECER (uma por linha)", area),
         contador,
@@ -81,7 +78,6 @@
       dados,
       nomeArquivo: "remover_hedges.js",
       ondeColar: ONDE_COLAR,
-      comoUsar: COMO_USAR,
     });
 
     function atualizar() {

@@ -332,9 +332,21 @@
           return `${id}=${itens}`;
         });
         const comoOk = comoUsar.every(s => Number(s.split("=")[1]) >= 4);
+        // "Como usar" fica na coluna da esquerda (não na coluna do script, que acompanha a rolagem)
+        // e a coluna do script nunca passa da altura da tela: o que não couber rola dentro dela.
+        const comoNaEsquerda = ["inclusao", "hedges", "previsoes"].every(id => {
+          const t = d.getElementById(`tela-${id}`);
+          return !!t && !!t.querySelector(".coluna-esquerda .como-usar") && !t.querySelector(".coluna-direita .como-usar");
+        });
+        const dir = tela && tela.querySelector(".coluna-direita");
+        const estiloDir = dir && w.getComputedStyle(dir);
+        const largo = w.innerWidth > 900;
+        const colunaCabe = !largo || (!!estiloDir && estiloDir.overflowY === "auto" && estiloDir.maxHeight !== "none");
         const scriptLimpo = !!preDepois && !/\/\/|\/\*/.test(preDepois.textContent);
         return conferir([
           [`"Como usar" com pelo menos 4 passos em cada tela (${comoUsar.join(", ")})`, comoOk],
+          ['"Como usar" deveria ficar na coluna da esquerda', comoNaEsquerda],
+          [`a coluna do script deveria ter altura máxima e rolagem própria (largura ${w.innerWidth})`, colunaCabe],
           ["o script mostrado no painel não deveria ter comentários", scriptLimpo],
           ["pdfjsLib.getDocument não é função", pdfOk],
           [`cartões: ${cartoes.map(c => !!c).join(", ")}`, cartoes.every(Boolean)],

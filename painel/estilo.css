@@ -83,7 +83,9 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--primaria); }
   padding: 20px;
   min-width: 0;
 }
-.coluna-direita { position: sticky; top: 16px; }
+/* A coluna do script acompanha a rolagem, mas nunca passa da altura da tela:
+   o que não couber rola dentro dela (nada fica escondido abaixo da tela). */
+.coluna-direita { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
 
 .passos { padding-left: 20px; margin: 0; }
 .passos li { margin-bottom: 8px; }
@@ -137,7 +139,7 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--primaria); }
 .status { font-size: 13px; color: var(--suave); }
 
 .onde { margin: 12px 0 0; font-size: 13px; color: var(--suave); }
-.como-usar { margin: 12px 0 0; font-size: 13px; }
+.como-usar { margin: 0 0 16px; font-size: 13px; }
 .como-usar summary { cursor: pointer; font-weight: 600; }
 .como-usar ol { margin: 6px 0 0; padding-left: 20px; }
 .como-usar li { margin: 4px 0; }
@@ -192,7 +194,7 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--primaria); }
 
 @media (max-width: 900px) {
   .processo { grid-template-columns: minmax(0, 1fr); }
-  .coluna-direita { position: static; }
+  .coluna-direita { position: static; max-height: none; overflow-y: visible; }
 }
 
 @media (max-width: 480px) {

@@ -3,7 +3,8 @@
   const ONDE_COLAR = "Tela do caixa do T.IMP, já filtrada — console (F12)";
   const COMO_USAR = [
     "No T.IMP, abra a tela do Caixa e filtre só os lançamentos de previsão que devem ser excluídos.",
-    "Aperte F12, abra a aba Console, cole o script de Simulação e aperte Enter.",
+    "Com Simulação marcada, copie ou baixe o script ao lado.",
+    "Na tela do Caixa, aperte F12, abra a aba Console, cole o script e aperte Enter.",
     "Simulação: as linhas que seriam excluídas ficam em vermelho e a lista aparece no console. Nada é excluído.",
     "Conferiu? Volte aqui, escolha Execução, copie e cole no console da mesma tela.",
     "Execução: o T.IMP pede confirmação, exclui todas as linhas visíveis e recarrega a página.",
@@ -23,6 +24,7 @@
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
       criar("h2", { texto: "Exclusão de previsões" }),
       criar("p", { texto: "Exclui todos os lançamentos de previsão visíveis na tabela." }),
+      P.criarComoUsar(COMO_USAR),
     ]);
     el.appendChild(criar("div", { class: "processo" }, [esquerda, direita]));
 
@@ -35,7 +37,6 @@
         dados: () => ({ processo: "previsoes" }),
         nomeArquivo: "excluir_previsoes.js",
         ondeColar: ONDE_COLAR,
-        comoUsar: COMO_USAR,
       });
     }
     montarColuna();
