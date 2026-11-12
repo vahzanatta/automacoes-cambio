@@ -57,6 +57,7 @@ h2 { font-size: 18px; margin: 0 0 12px; color: var(--primaria); }
 .cartao:hover, .cartao:focus-visible { border-color: var(--primaria); box-shadow: 0 2px 8px rgba(8, 106, 135, .15); }
 .cartao strong { font-size: 16px; color: var(--primaria); }
 .cartao span { color: var(--suave); font-size: 14px; }
+.titulo-tela { margin: 0 0 16px; font-size: 20px; color: var(--primaria); }
 
 /* Telas de processo: duas colunas, o script sempre à direita */
 .voltar {

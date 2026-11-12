@@ -22,7 +22,7 @@
   function iniciarTelaPrevisoes(el) {
     const direita = criar("aside", { class: "coluna-direita" });
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
-      criar("h2", { texto: "Exclusão de previsões" }),
+      criar("h2", { texto: "Exclusão de lançamentos de previsão" }),
       criar("p", { texto: "Exclui todos os lançamentos de previsão visíveis na tabela." }),
       P.criarComoUsar(COMO_USAR),
     ]);

@@ -39,7 +39,7 @@
 
     const campo = (rotulo, controle) => criar("label", { class: "campo" }, [criar("span", { texto: rotulo }), controle]);
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
-      criar("h2", { texto: "Data de pagamento dos hedges" }),
+      criar("h2", { texto: "Passo 1 – Inclusão de datas de pagamento" }),
       P.criarComoUsar(COMO_USAR),
       criar("div", { class: "formulario" }, [
         campo("Empresa", empresa),

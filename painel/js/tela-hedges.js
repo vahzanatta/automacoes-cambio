@@ -42,7 +42,7 @@
     const campo = (rotulo, controle) => criar("label", { class: "campo" }, [criar("span", { texto: rotulo }), controle]);
 
     const esquerda = criar("div", { class: "coluna-esquerda" }, [
-      criar("h2", { texto: "Limpeza de hedges" }),
+      criar("h2", { texto: "Passo 2 – Remoção de IMPs" }),
       P.criarComoUsar(COMO_USAR),
       criar("div", { class: "formulario" }, [
         campo("IMPs que devem PERMANECER (uma por linha)", area),

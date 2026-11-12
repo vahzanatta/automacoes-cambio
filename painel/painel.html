@@ -17,19 +17,31 @@
     <div class="cartoes">
       <button type="button" class="cartao" data-tela="inclusao">
         <strong>Inclusão de contratos</strong>
-        <span>Lê os PDFs de contratação e grava os contratos nos pagamentos.</span>
+        <span>Registra no T.IMP o número dos contratos de câmbio, a partir dos PDFs da pasta.</span>
       </button>
-      <button type="button" class="cartao" data-tela="hedges">
-        <strong>Limpeza de hedges</strong>
-        <span>Remove do hedge as IMPs que não devem ficar.</span>
+      <button type="button" class="cartao" data-tela="hedges-menu">
+        <strong>Seleções e remoções de hedges</strong>
+        <span>Passo 1 – Inclusão de datas de pagamento</span>
+        <span>Passo 2 – Remoção de IMPs</span>
       </button>
       <button type="button" class="cartao" data-tela="previsoes">
-        <strong>Exclusão de previsões</strong>
-        <span>Exclui todos os lançamentos da tabela do Caixa filtrada.</span>
+        <strong>Exclusão de lançamentos de previsão</strong>
+        <span>Apaga de uma vez os lançamentos de previsão que aparecem na tela do caixa.</span>
       </button>
+    </div>
+  </section>
+
+  <section id="tela-hedges-menu" class="tela" hidden>
+    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+    <h2 class="titulo-tela">Seleções e remoções de hedges</h2>
+    <div class="cartoes">
       <button type="button" class="cartao" data-tela="datas-hedge">
-        <strong>Data de pagamento dos hedges</strong>
-        <span>Define a data de pagamento do hedge das IMPs do Passo 01, por grupo de data.</span>
+        <strong>Passo 1 – Inclusão de datas de pagamento</strong>
+        <span>Define a nova data de pagamento das IMPs, a partir da planilha com código e data.</span>
+      </button>
+      <button type="button" class="cartao" data-tela="hedges">
+        <strong>Passo 2 – Remoção de IMPs</strong>
+        <span>Mantém no hedge só as IMPs da sua lista e retira as demais.</span>
       </button>
     </div>
   </section>
@@ -39,7 +51,7 @@
   </section>
 
   <section id="tela-hedges" class="tela" hidden>
-    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+    <button type="button" class="voltar" data-tela="hedges-menu">← Voltar</button>
   </section>
 
   <section id="tela-previsoes" class="tela" hidden>
@@ -47,7 +59,7 @@
   </section>
 
   <section id="tela-datas-hedge" class="tela" hidden>
-    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+    <button type="button" class="voltar" data-tela="hedges-menu">← Voltar</button>
   </section>
 </main>
 

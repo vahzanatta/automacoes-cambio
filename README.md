@@ -2,10 +2,11 @@
 
 Ferramentas para preparar scripts que são colados no console do navegador (F12) do T.IMP:
 
-- **Inclusão de contratos**: lê os PDFs de contratação e grava os contratos nos pagamentos (Terceiros e Hedge).
-- **Limpeza de hedges**: remove do hedge as IMPs que não devem ficar.
-- **Exclusão de previsões**: exclui todos os lançamentos de previsão visíveis na tabela do Caixa.
-- **Data de pagamento dos hedges**: define a data de pagamento do hedge das IMPs do Passo 01 (Hedges Novos ou Hedges Expirados), por grupo de data, a partir de uma planilha colada.
+- **Inclusão de contratos**: registra no T.IMP o número dos contratos de câmbio, a partir dos PDFs da pasta (Terceiros e Hedge).
+- **Seleções e remoções de hedges**, em dois passos:
+  - **Passo 1 – Inclusão de datas de pagamento**: define a data de pagamento do hedge das IMPs (Hedges Novos ou Hedges Expirados), por grupo de data, a partir de uma planilha colada.
+  - **Passo 2 – Remoção de IMPs**: mantém no hedge só as IMPs da lista e retira as demais.
+- **Exclusão de lançamentos de previsão**: apaga de uma vez os lançamentos de previsão que aparecem na tela do caixa.
 
 ## Para a equipe: o painel
 
@@ -21,7 +22,7 @@ Observações:
 - O painel precisa de acesso à internet: a biblioteca que lê PDFs (pdf.js) é carregada da internet.
 - Os PDFs nunca são enviados a lugar nenhum. Eles são lidos dentro do próprio navegador.
 - Não há nada para instalar.
-- Na tela de datas de pagamento dos hedges, cole a planilha com as duas colunas, código da IMP e data, copiadas direto do Excel.
+- No Passo 1 dos hedges (inclusão de datas de pagamento), cole a planilha com as duas colunas, código da IMP e data, copiadas direto do Excel.
 
 ## Alternativa em Python
 

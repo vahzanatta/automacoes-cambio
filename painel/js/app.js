@@ -1,6 +1,6 @@
 // Navegação entre as telas do painel e início de cada tela.
 (function (P) {
-  const TELAS = ["inicial", "inclusao", "hedges", "previsoes", "datas-hedge"];
+  const TELAS = ["inicial", "inclusao", "hedges-menu", "datas-hedge", "hedges", "previsoes"];
   const aoMostrar = {};   // tela -> função chamada cada vez que a tela é aberta
 
   function mostrarTela(id) {
