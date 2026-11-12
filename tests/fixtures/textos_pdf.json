@@ -1,0 +1,32 @@
+[
+  {
+    "nome": "caso normal",
+    "texto": "CONTRATO DE CAMBIO\nNúmero do Contrato de Câmbio\n2400123\nCódigo Moeda\nUSD\nValor em moeda estrangeira\n1.234,56\nPagador/Recebedor no exterior\nEXEMPLO TRADING LTD\nOutro campo\nxyz",
+    "esperado": {"num_contrato": "2400123", "moeda": "USD", "valor": "1.234,56", "fornecedor": "EXEMPLO TRADING LTD"}
+  },
+  {
+    "nome": "zero a esquerda no contrato",
+    "texto": "Número do Contrato de Câmbio\n0002400456\nCódigo Moeda\nEUR\nValor em moeda estrangeira\n500,00\nPagador/Recebedor no exterior\nFORNECEDOR FICTICIO GMBH",
+    "esperado": {"num_contrato": "2400456", "moeda": "EUR", "valor": "500,00", "fornecedor": "FORNECEDOR FICTICIO GMBH"}
+  },
+  {
+    "nome": "fallback do numero sem o rotulo",
+    "texto": "Contrato registrado 0012345678 em nome da empresa\nCódigo Moeda\nGBP\nValor em moeda estrangeira\n10,50\nPagador/Recebedor no exterior\nINVENTADA SUPPLY CO",
+    "esperado": {"num_contrato": "12345678", "moeda": "GBP", "valor": "10,50", "fornecedor": "INVENTADA SUPPLY CO"}
+  },
+  {
+    "nome": "fallback da moeda sem o rotulo",
+    "texto": "Número do Contrato de Câmbio\n2400789\nMoeda negociada: CHF\nValor em moeda estrangeira\n99.999,99\nPagador/Recebedor no exterior\nSINTETICA AG",
+    "esperado": {"num_contrato": "2400789", "moeda": "CHF", "valor": "99.999,99", "fornecedor": "SINTETICA AG"}
+  },
+  {
+    "nome": "fornecedor ausente",
+    "texto": "Número do Contrato de Câmbio\n2400321\nCódigo Moeda\nUSD\nValor em moeda estrangeira\n7,00",
+    "esperado": {"num_contrato": "2400321", "moeda": "USD", "valor": "7,00", "fornecedor": null}
+  },
+  {
+    "nome": "fornecedor com e comercial, barra e acentos",
+    "texto": "Número do Contrato de Câmbio\n2400654\nCódigo Moeda\nJPY\nValor em moeda estrangeira\n1.000,00\nPagador/Recebedor no exterior\nÁGUA & LUZ / SÃO JOSÉ COMÉRCIO LTDA  \nFim",
+    "esperado": {"num_contrato": "2400654", "moeda": "JPY", "valor": "1.000,00", "fornecedor": "ÁGUA & LUZ / SÃO JOSÉ COMÉRCIO LTDA"}
+  }
+]

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Integração no portal simulado</title>
+<style>
+  body { font: 13px sans-serif; margin: 12px; }
+  #fr { width: 1200px; height: 700px; border: 1px solid #999; }
+  .ok { color: #1a7f37; } .falha { color: #c00; }
+</style>
+</head>
+<body>
+<h1>Integração no portal simulado</h1>
+<ul id="lista"></ul>
+<iframe id="fr"></iframe>
+<script src="/tests/integracao/cenarios.js"></script>
+<script>
+(function () {
+  const fr = document.getElementById("fr");
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // Ferramentas que os cenários recebem
+  const ctx = {
+    sleep,
+    async reset(params = "") {
+      const r = await fetch("/__mock/reset" + (params ? "?" + params : ""));
+      if (!r.ok) throw new Error("reset falhou");
+    },
+    async estado() {
+      return (await fetch("/__mock/estado", { cache: "no-store" })).json();
+    },
+    async script(nome) {
+      const r = await fetch("/__mock/script?arquivo=" + encodeURIComponent(nome), { cache: "no-store" });
+      if (!r.ok) throw new Error("script não encontrado: " + nome);
+      return r.text();
+    },
+    // Espera a próxima carga do iframe (navegação ou recarga)
+    esperarCarga(ms = 15000) {
+      return new Promise((res, rej) => {
+        const t = setTimeout(() => rej(new Error("a página não carregou a tempo")), ms);
+        fr.addEventListener("load", () => { clearTimeout(t); res(); }, { once: true });
+      });
+    },
+    // Abre uma página do mock no iframe, troca confirm/alert e grava o console
+    async abrir(url) {
+      const carga = ctx.esperarCarga();
+      fr.src = url;
+      await carga;
+      return ctx.preparar();
+    },
+    preparar() {
+      const w = fr.contentWindow;
+      const pag = { win: w, doc: fr.contentDocument, logs: [], confirms: [], alerts: [] };
+      w.confirm = m => { pag.confirms.push(String(m)); return true; };
+      w.alert = m => { pag.alerts.push(String(m)); };
+      const original = w.console;
+      const capturar = ["log", "info", "warn", "error", "table"];
+      w.console = new Proxy(original, {
+        get(alvo, k) {
+          if (!capturar.includes(k)) return alvo[k];
+          return (...args) => {
+            let copia;
+            try { copia = JSON.parse(JSON.stringify(args)); } catch (e) { copia = args.map(String); }
+            pag.logs.push({ tipo: k, args: copia });
+            return alvo[k].apply(alvo, args);
+          };
+        },
+      });
+      return pag;
+    },
+    // Abre a página, roda o script com eval no iframe e espera a promise (se houver)
+    async rodar(nomeScript, url = "/") {
+      const texto = await ctx.script(nomeScript);
+      const pag = await ctx.abrir(url);
+      pag.retorno = await pag.win.eval(texto);
+      return pag;
+    },
+    async esperar(cond, ms = 20000, passo = 200) {
+      const fim = Date.now() + ms;
+      while (Date.now() < fim) {
+        const v = await cond();
+        if (v) return v;
+        await sleep(passo);
+      }
+      return null;
+    },
+    iframe: fr,
+  };
+
+  function mostrar(r) {
+    const li = document.createElement("li");
+    li.className = r.ok ? "ok" : "falha";
+    li.textContent = `${r.ok ? "PASS" : "FAIL"} ${r.nome}: ${r.detalhe}`;
+    document.getElementById("lista").appendChild(li);
+  }
+
+  (async () => {
+    const resultados = [];
+    for (const c of window.CENARIOS) {
+      let r;
+      try {
+        r = await Promise.race([
+          c.rodar(ctx),
+          sleep(60000).then(() => ({ ok: false, detalhe: "tempo esgotado (60 s)" })),
+        ]);
+      } catch (e) {
+        r = { ok: false, detalhe: "exceção: " + (e && e.message || e) };
+      }
+      const item = { nome: c.nome, ok: !!(r && r.ok), detalhe: (r && r.detalhe) || "" };
+      resultados.push(item);
+      mostrar(item);
+    }
+    await fetch("/__mock/resultado", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(resultados),
+    });
+  })();
+})();
+</script>
+</body>
+</html>

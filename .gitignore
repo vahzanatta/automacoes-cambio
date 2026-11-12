@@ -5,3 +5,8 @@ inclusao_contrato.txt
 # Rascunhos de ferramentas e cache do Python
 .superpowers/
 __pycache__/
+.venv/
+tests/saida/
+
+# Porta gravada pelo portal simulado (tests/mock_timp.py)
+tests/porta.txt

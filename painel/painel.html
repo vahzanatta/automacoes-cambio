@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Câmbio</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header class="topo">
+  <h1>Painel de Câmbio</h1>
+  <p>Gera os scripts para colar no console do T.IMP.</p>
+</header>
+
+<main>
+  <section id="tela-inicial" class="tela">
+    <div class="cartoes">
+      <button type="button" class="cartao" data-tela="inclusao">
+        <strong>Inclusão de contratos</strong>
+        <span>Lê os PDFs de contratação e grava os contratos nos pagamentos.</span>
+      </button>
+      <button type="button" class="cartao" data-tela="hedges">
+        <strong>Limpeza de hedges</strong>
+        <span>Remove do hedge as IMPs que não devem ficar.</span>
+      </button>
+      <button type="button" class="cartao" data-tela="previsoes">
+        <strong>Exclusão de previsões</strong>
+        <span>Exclui todos os lançamentos da tabela do Caixa filtrada.</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="tela-inclusao" class="tela" hidden>
+    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+  </section>
+
+  <section id="tela-hedges" class="tela" hidden>
+    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+  </section>
+
+  <section id="tela-previsoes" class="tela" hidden>
+    <button type="button" class="voltar" data-tela="inicial">← Voltar</button>
+  </section>
+</main>
+
+<!-- pdf.js (cdnjs): o worker vem antes, para rodar na própria página (sem new Worker de outra origem).
+     integrity (SRI): se o arquivo do cdnjs mudar, o navegador não o executa e o painel não lê PDFs. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+        integrity="sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"
+        integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e"
+        crossorigin="anonymous"></script>
+<script src="js/raiz.js"></script>
+<script src="js/config.js"></script>
+<script src="js/extracao.js"></script>
+<script src="js/gerador.js"></script>
+<script src="js/trava.js"></script>
+<script src="modelos/inclusao.js"></script>
+<script src="modelos/hedges.js"></script>
+<script src="modelos/previsoes.js"></script>
+<script src="js/coluna-script.js"></script>
+<script src="js/tela-inclusao.js"></script>
+<script src="js/tela-hedges.js"></script>
+<script src="js/tela-previsoes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
