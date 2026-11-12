@@ -1,0 +1,7 @@
+# Dados de contratos e arquivos gerados: ficam só no computador, nunca no repositório
+preencher_timp.js
+inclusao_contrato.txt
+
+# Rascunhos de ferramentas e cache do Python
+.superpowers/
+__pycache__/

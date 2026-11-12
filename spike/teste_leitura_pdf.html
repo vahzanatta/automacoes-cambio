@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste leitura PDF</title>
+<!-- TESTE DESCARTÁVEL: valida se o pdf.js no Chrome extrai os mesmos dados que o pdfplumber -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root { --azul:#086A87; --ok:#1e7e34; --erro:#c0392b; --borda:#d0d7de; --fundo:#f6f8fa; }
+  body { font:14px/1.4 Segoe UI, Arial, sans-serif; margin:0; background:#fff; color:#222; }
+  header { background:var(--azul); color:#fff; padding:12px 20px; }
+  header h1 { margin:0; font-size:18px; }
+  header p { margin:4px 0 0; opacity:.85; font-size:13px; }
+  main { padding:16px 20px; }
+  .barra { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  button, .botao { background:var(--azul); color:#fff; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; }
+  button.sec { background:#fff; color:var(--azul); border:1px solid var(--azul); }
+  input[type=file] { display:none; }
+  #status { font-weight:600; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border:1px solid var(--borda); padding:4px 8px; text-align:left; vertical-align:top; }
+  th { background:var(--fundo); position:sticky; top:0; }
+  tr.ok td.st { color:var(--ok); } tr.erro td.st { color:var(--erro); font-weight:600; }
+  td.dif { background:#fdecea; }
+  pre { background:var(--fundo); border:1px solid var(--borda); padding:8px; white-space:pre-wrap; max-height:300px; overflow:auto; font-size:12px; }
+  details { margin-top:16px; }
+  textarea { width:100%; height:120px; font:12px monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Teste de leitura de PDFs no navegador</h1>
+  <p>Descartável. Nada sai do computador: os PDFs são lidos aqui mesmo, no Chrome.</p>
+</header>
+<main>
+  <div class="barra">
+    <label class="botao" for="pasta">📁 Selecionar pasta…</label>
+    <input type="file" id="pasta" webkitdirectory multiple>
+    <span id="status">Nenhuma pasta selecionada.</span>
+    <button class="sec" id="copiar" hidden>📋 Copiar array (formato do inclusao_contrato)</button>
+  </div>
+
+  <details>
+    <summary><b>Comparar com o resultado do Python</b> (opcional)</summary>
+    <p>Cole aqui o array <code>CONTRATOS</code> (ou o JSON gerado pelo <code>automacao_timp.py</code>) e clique em Comparar. Células diferentes ficam vermelhas.</p>
+    <textarea id="refPython" placeholder='[ { "num_contrato": "123456789", "moeda": "EUR", ... } ]'></textarea>
+    <button id="comparar">Comparar</button> <span id="resComp"></span>
+  </details>
+
+  <div style="margin-top:16px;overflow:auto;max-height:65vh">
+    <table id="tabela" hidden>
+      <thead><tr><th>#</th><th>Arquivo</th><th>Nº contrato</th><th>Moeda</th><th>Valor</th><th>Fornecedor</th><th>Status</th><th>Texto</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="textoBruto"></div>
+</main>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const resultados = [];
+const $ = s => document.querySelector(s);
+
+// Monta o texto linha a linha (agrupando por altura na página), parecido com o pdfplumber.extract_text()
+async function extrairTexto(arquivo) {
+  const pdf = await pdfjsLib.getDocument({ data: await arquivo.arrayBuffer() }).promise;
+  const paginas = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const pagina = await pdf.getPage(p);
+    const { items } = await pagina.getTextContent();
+    const pedacos = items
+      .filter(i => i.str && i.str.trim() !== "")
+      .map(i => ({ x: i.transform[4], y: i.transform[5], w: i.width, h: Math.abs(i.transform[3]) || 8, s: i.str }));
+    pedacos.sort((a, b) => b.y - a.y || a.x - b.x);
+    const linhas = [];
+    for (const pc of pedacos) {
+      const tol = Math.max(2, pc.h * 0.4);
+      const linha = linhas.find(l => Math.abs(l.y - pc.y) <= tol);
+      if (linha) linha.itens.push(pc); else linhas.push({ y: pc.y, itens: [pc] });
+    }
+    linhas.sort((a, b) => b.y - a.y);
+    paginas.push(linhas.map(l => {
+      l.itens.sort((a, b) => a.x - b.x);
+      let txt = "", fim = null;
+      for (const it of l.itens) {
+        if (fim !== null && it.x - fim > it.h * 0.15 && !txt.endsWith(" ")) txt += " ";
+        txt += it.s; fim = it.x + it.w;
+      }
+      return txt.trim();
+    }).join("\n"));
+  }
+  return paginas.join("\n");
+}
+
+// Mesmas regras do automacao_timp.py (extrair_dados_pdf)
+function extrairDados(texto) {
+  let m = texto.match(/Número do Contrato de Câmbio\s*[\r\n]+\s*(\d+)/i);
+  if (!m) m = texto.match(/\b0*(\d{8,10})\b/);
+  const num = m ? m[1].replace(/^0+/, "") : null;
+
+  let mm = texto.match(/Código Moeda\s*[\r\n]+\s*([A-Z]{3})/i);
+  if (!mm) mm = texto.match(/\b(USD|EUR|GBP|JPY|CAD|CHF)\b/);
+  const moeda = mm ? mm[1] : null;
+
+  const mv = texto.match(/Valor em moeda estrangeira\s*[\r\n]+\s*([\d.,]+)/i);
+  const valor = mv ? mv[1] : null;
+
+  const mf = texto.match(/Pagador\/Recebedor no exterior\s*[\r\n]+\s*([^\r\n]+)/i);
+  const fornecedor = mf ? mf[1].trim() : null;
+
+  return { num_contrato: num, moeda, valor, fornecedor };
+}
+
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+
+function desenhar() {
+  const tb = $("#tabela tbody");
+  tb.innerHTML = "";
+  resultados.forEach((r, i) => {
+    const d = r.dados || {};
+    const ok = !r.erro && d.num_contrato && d.moeda && d.valor && d.fornecedor;
+    const tr = document.createElement("tr");
+    tr.className = ok ? "ok" : "erro";
+    tr.innerHTML = `<td>${i + 1}</td><td>${esc(r.arquivo)}</td>
+      <td data-c="num_contrato">${esc(d.num_contrato)}</td><td data-c="moeda">${esc(d.moeda)}</td>
+      <td data-c="valor">${esc(d.valor)}</td><td data-c="fornecedor">${esc(d.fornecedor)}</td>
+      <td class="st">${r.erro ? "Erro: " + esc(r.erro) : ok ? "✔ ok" : "⚠ dados incompletos"}</td>
+      <td><button class="sec" data-i="${i}">ver</button></td>`;
+    tb.appendChild(tr);
+  });
+  $("#tabela").hidden = !resultados.length;
+}
+
+$("#tabela").addEventListener("click", e => {
+  const i = e.target.dataset.i;
+  if (i === undefined) return;
+  const r = resultados[i];
+  $("#textoBruto").innerHTML = `<h3>Texto extraído — ${esc(r.arquivo)}</h3><pre>${esc(r.texto || r.erro)}</pre>`;
+  $("#textoBruto").scrollIntoView({ behavior: "smooth" });
+});
+
+$("#pasta").addEventListener("change", async e => {
+  const pdfs = [...e.target.files].filter(f => /\.pdf$/i.test(f.name) && !f.webkitRelativePath.split("/").slice(1, -1).length);
+  resultados.length = 0;
+  $("#textoBruto").innerHTML = "";
+  const t0 = performance.now();
+  for (let i = 0; i < pdfs.length; i++) {
+    $("#status").textContent = `Lendo ${i + 1}/${pdfs.length}: ${pdfs[i].name}`;
+    try {
+      const texto = await extrairTexto(pdfs[i]);
+      resultados.push({ arquivo: pdfs[i].name, texto, dados: extrairDados(texto) });
+    } catch (err) {
+      resultados.push({ arquivo: pdfs[i].name, erro: err.message });
+    }
+    desenhar();
+  }
+  const okCount = resultados.filter(r => r.dados && Object.values(r.dados).every(Boolean)).length;
+  $("#status").textContent = `${pdfs.length} PDF(s) lidos em ${((performance.now() - t0) / 1000).toFixed(1)} s — ${okCount} ok, ${pdfs.length - okCount} com problema.`;
+  $("#copiar").hidden = !okCount;
+});
+
+$("#copiar").addEventListener("click", async () => {
+  const arr = resultados.filter(r => r.dados && Object.values(r.dados).every(Boolean))
+    .map(r => ({ ...r.dados, arquivo: r.arquivo }));
+  await navigator.clipboard.writeText(JSON.stringify(arr, null, 2));
+  $("#copiar").textContent = "✔ Copiado!";
+  setTimeout(() => $("#copiar").textContent = "📋 Copiar array (formato do inclusao_contrato)", 2000);
+});
+
+$("#comparar").addEventListener("click", () => {
+  let ref;
+  try {
+    const txt = $("#refPython").value.trim().replace(/,\s*([\]}])/g, "$1");
+    ref = (new Function("return (" + txt + ")"))();
+  } catch (err) { $("#resComp").textContent = "Não consegui ler o array colado: " + err.message; return; }
+  const porArq = new Map(ref.map(r => [r.arquivo, r]));
+  let iguais = 0, difs = 0, semRef = 0;
+  [...$("#tabela tbody").rows].forEach((tr, i) => {
+    const r = porArq.get(resultados[i].arquivo);
+    if (!r) { semRef++; return; }
+    let linhaIgual = true;
+    tr.querySelectorAll("td[data-c]").forEach(td => {
+      const campo = td.dataset.c, nosso = (resultados[i].dados || {})[campo];
+      const igual = String(nosso ?? "") === String(r[campo] ?? "");
+      td.classList.toggle("dif", !igual);
+      td.title = igual ? "" : `Python: ${r[campo]}`;
+      if (!igual) linhaIgual = false;
+    });
+    linhaIgual ? iguais++ : difs++;
+  });
+  $("#resComp").textContent = `${iguais} iguais, ${difs} diferentes (passe o mouse na célula vermelha), ${semRef} sem correspondência no array colado.`;
+});
+</script>
+</body>
+</html>
