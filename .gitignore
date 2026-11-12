@@ -10,3 +10,10 @@ tests/saida/
 
 # Porta gravada pelo portal simulado (tests/mock_timp.py)
 tests/porta.txt
+
+# Ficam só no computador: testes, documentação de desenho e scripts antigos
+tests/
+docs/
+remocao_hedges.js
+removao_previsoes.js
+.venv/

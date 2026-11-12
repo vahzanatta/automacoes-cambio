@@ -22,7 +22,6 @@ Observações:
 - Os PDFs nunca são enviados a lugar nenhum. Eles são lidos dentro do próprio navegador.
 - Não há nada para instalar.
 - Na tela de datas de pagamento dos hedges, cole a planilha com as duas colunas, código da IMP e data, copiadas direto do Excel.
-- Os arquivos `remocao_hedges.js` e `removao_previsoes.js` na raiz do repositório são as versões antigas dos scripts; use o painel no lugar deles.
 
 ## Alternativa em Python
 
@@ -42,12 +41,4 @@ O arquivo `preencher_timp.js` é criado ao lado do `automacao_timp.py` e sai em 
 
 ## Para desenvolver
 
-Os modelos dos scripts ficam em `painel/modelos/` e são a fonte única usada pelo painel (JavaScript) e pelo `automacao_timp.py`.
-
-```
-node --test "tests/node/*.test.js"
-python -m unittest tests.test_automacao_timp -v
-python tests/rodar_integracao.py
-```
-
-`tests/rodar_integracao.py` sobe um portal T.IMP simulado e roda o painel e os scripts gerados num Chrome sem janela; precisa de Chrome instalado.
+Os modelos dos scripts ficam em `painel/modelos/` e são a fonte única usada pelo painel (JavaScript) e pelo `automacao_timp.py`. Os testes automáticos e a documentação de desenho não fazem parte deste repositório.
